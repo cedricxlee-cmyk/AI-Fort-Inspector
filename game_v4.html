@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fort Inspector</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Special Elite', cursive;
+            background: #3a3a3a;
+            color: #2a2a2a;
+            overflow: hidden;
+            image-rendering: pixelated;
+        }
+
+        .game-wrapper {
+            display: flex;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(180deg, #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
+        }
+
+        /* Left sidebar - inspection booth */
+        .left-panel {
+            width: 340px;
+            background: #1a1a1a;
+            border-right: 4px solid #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset -10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .booth-header {
+            height: 80px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+            border-bottom: 3px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 20px;
+        }
+
+        .header-light {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid #0a0a0a;
+            animation: blink 2s infinite;
+        }
+
+        .light-green { background: #4CAF50; animation-delay: 0s; }
+        .light-yellow { background: #ffa726; animation-delay: 0.5s; }
+        .light-red { background: #f44336; animation-delay: 1s; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; }
+            50% { opacity: 0.3; box-shadow: none; }
+        }
+
+        .date-counter {
+            background: #000;
+            color: #4CAF50;
+            padding: 8px 15px;
+            border: 2px solid #0a0a0a;
+            font-size: 12px;
+            text-align: center;
+            font-family: monospace;
+            box-shadow: inset 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .inspector-booth {
+            height: 320px;
+            background: #0a0a0a;
+            border-bottom: 3px solid #000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .booth-frame {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border: 6px solid #2a2a2a;
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 0 30px rgba(0,0,0,0.8),
+                0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .inspector-avatar {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            object-fit: cover;
+            animation: idle 4s ease-in-out infinite;
+            filter: contrast(1.1) brightness(0.9);
+        }
+
+        @keyframes idle {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .booth-scanline {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(76, 175, 80, 0.5);
+            animation: scan 3s linear infinite;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.8);
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .tools-panel {
+            flex: 1;
+            padding: 20px;
+            background: #1a1a1a;
+            overflow-y: auto;
+        }
+
+        .tool-section {
+            margin-bottom: 20px;
+        }
+
+        .tool-title {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .tool-button {
+            width: 100%;
+            padding: 15px 12px;
+            margin-bottom: 8px;
+            background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+            color: #d4d4d4;
+            border: 2px solid #0a0a0a;
+            font-family: 'Special Elite', cursive;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            box-shadow: 0 3px 0 #0a0a0a;
+            position: relative;
+        }
+
+        .tool-button:hover {
+            background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 100%);
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 #0a0a0a;
+        }
+
+        .tool-button:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
+        .tool-button::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            background: #4CAF50;
+            border-radius: 50%;
+        }
+
+        /* Center panel - desk area */
+        .center-panel {
+            flex: 1;
+            background: 
+                radial-gradient(circle at 50% 50%, #6b5d4f 0%, #5a4f45 100%);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: inset 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .desk-surface {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+        }
+
+        .document-stack {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 150px;
+            background: #f4e9d9;
+            border: 3px solid #2a2a2a;
+            box-shadow: 
+                5px 5px 0 rgba(0,0,0,0.2),
+                10px 10px 0 rgba(244, 233, 217, 0.5),
+                15px 15px 0 rgba(0,0,0,0.1);
+            transform: rotate(-5deg);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .document-stack:hover {
+            transform: rotate(-3deg) translateY(-5px);
+        }
+
+        .document-stack::after {
+            content: '📋';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+        }
+
+        /* Main document */
+        .document-holder {
+            width: 650px;
+            min-height: 750px;
+            background: 
+                linear-gradient(135deg, transparent 10px, #f4e9d9 10px),
+                linear-gradient(225deg, transparent 10px, #f4e9d9 10px);
+            background-position: bottom left, bottom right;
+            background-size: 50% 100%;
+            background-repeat: no-repeat;
+            border: 4px solid #2a2a2a;
+            box-shadow: 
+                0 20px 50px rgba(0,0,0,0.6),
+                inset 0 0 50px rgba(139, 115, 85, 0.1);
+            position: relative;
+            padding: 40px;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .document-header {
+            text-align: center;
+            border-bottom: 4px double #8b4513;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .document-serial {
+            position: absolute;
+            top: -10px;
+            right: 0;
+            font-size: 9px;
+            color: #8b4513;
+            background: #f4e9d9;
+            padding: 2px 8px;
+        }
+
+        .document-title {
+            font-size: 26px;
+            color: #8b4513;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+
+        .document-subtitle {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 2px;
+        }
+
+        .official-stamp {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 90px;
+            height: 90px;
+            border: 4px solid rgba(139, 69, 19, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(139, 69, 19, 0.3);
+            font-size: 9px;
+            text-align: center;
+            line-height: 1.2;
+            transform: rotate(12deg);
+            font-weight: bold;
+        }
+
+        .mugshot-section {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 25px;
+            align-items: flex-start;
+        }
+
+        .mugshot-primary {
+            width: 160px;
+            height: 200px;
+            border: 4px solid #2a2a2a;
+            background: #d4d4d4;
+            box-shadow: 
+                0 5px 15px rgba(0,0,0,0.3),
+                inset 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mugshot-primary img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: photoFlash 0.5s;
+        }
+
+        @keyframes photoFlash {
+            0% { filter: brightness(3); }
+            100% { filter: brightness(1); }
+        }
+
+        .mugshot-strip {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mugshot-thumbnail {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #2a2a2a;
+            background: #d4d4d4;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: hidden;
+        }
+
+        .mugshot-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .mugshot-thumbnail:hover {
+            transform: scale(1.1);
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-field {
+            background: rgba(139, 69, 19, 0.05);
+            border-left: 3px solid #8b4513;
+            padding: 10px 12px;
+        }
+
+        .info-label {
+            font-size: 9px;
+            color: #8b4513;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-size: 13px;
+            color: #2a2a2a;
+            line-height: 1.4;
+        }
+
+        .discrepancy-marker {
+            display: inline-block;
+            background: #ff0000;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 8px;
+            margin-left: 5px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.95); }
+        }
+
+        .conversation-section {
+            background: rgba(255,255,255,0.4);
+            border: 3px solid #8b4513;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.8;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .prompt-line {
+            color: #2a2a2a;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .response-line {
+            color: #4a4a4a;
+        }
+
+        /* Decision buttons */
+        .decision-bar {
+            height: 120px;
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-top: 4px solid #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            padding: 0 40px;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .decision-button {
+            width: 200px;
+            height: 70px;
+            font-family: 'Special Elite', cursive;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 4px solid #0a0a0a;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 8px 0 #0a0a0a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .decision-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+        }
+
+        .decision-button:hover::before {
+            left: 100%;
+        }
+
+        .decision-button:hover {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #0a0a0a;
+        }
+
+        .decision-button:active {
+            transform: translateY(8px);
+            box-shadow: none;
+        }
+
+        .btn-deny {
+            background: linear-gradient(180deg, #d32f2f 0%, #b71c1c 100%);
+            color: #fff;
+            text-shadow: 
+                2px 2px 0 #000,
+                0 0 10px rgba(211, 47, 47, 0.5);
+        }
+
+        .btn-deny:hover {
+            background: linear-gradient(180deg, #e53935 0%, #c62828 100%);
+        }
+
+        .btn-approve {
+            background: linear-gradient(180deg, #388e3c 0%, #1b5e20 100%);
+            color: #fff;
+            text-shadow: 
+                2px 2px 0 #000,
+                0 0 10px rgba(56, 142, 60, 0.5);
+        }
+
+        .btn-approve:hover {
+            background: linear-gradient(180deg, #43a047 0%, #2e7d32 100%);
+        }
+
+        /* Right panel - scanning station */
+        .right-panel {
+            width: 380px;
+            background: #1a1a1a;
+            border-left: 4px solid #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .scanner-screen {
+            height: 350px;
+            background: #0a0a0a;
+            border-bottom: 4px solid #000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .scanner-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0, 255, 0, 0.03) 19px, rgba(0, 255, 0, 0.03) 20px),
+                repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0, 255, 0, 0.03) 19px, rgba(0, 255, 0, 0.03) 20px);
+            pointer-events: none;
+        }
+
+        .scanner-target {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            border: 3px solid #00ff00;
+            border-radius: 50%;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.3),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            animation: scanPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes scanPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        .face-display {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            object-fit: cover;
+            z-index: 1;
+            filter: 
+                contrast(1.2) 
+                brightness(0.8)
+                hue-rotate(10deg);
+            animation: scanRotate 8s linear infinite;
+        }
+
+        @keyframes scanRotate {
+            0% { filter: contrast(1.2) brightness(0.8) hue-rotate(0deg); }
+            100% { filter: contrast(1.2) brightness(0.8) hue-rotate(360deg); }
+        }
+
+        .scanner-readout {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 8px 20px;
+            font-size: 11px;
+            font-family: monospace;
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .rules-panel {
+            flex: 1;
+            background: #2a2a2a;
+            padding: 20px;
+            overflow-y: auto;
+            border-top: 2px solid #4CAF50;
+        }
+
+        .rules-header {
+            font-size: 14px;
+            color: #4CAF50;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .rule-card {
+            background: #1a1a1a;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid #f44336;
+            font-size: 10px;
+            line-height: 1.7;
+            color: #d4d4d4;
+            transition: all 0.3s;
+        }
+
+        .rule-card:hover {
+            background: #252525;
+            border-left-width: 6px;
+            transform: translateX(3px);
+        }
+
+        .rule-number {
+            color: #ffa726;
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        /* Stats overlay */
+        .stats-overlay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #4CAF50;
+            padding: 12px 30px;
+            display: flex;
+            gap: 40px;
+            font-size: 12px;
+            color: #4CAF50;
+            z-index: 100;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .verdict-card {
+            width: 700px;
+            background: #f4e9d9;
+            border: 6px solid #2a2a2a;
+            padding: 50px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.9);
+            position: relative;
+            animation: stampDrop 0.5s ease-out;
+        }
+
+        @keyframes stampDrop {
+            from {
+                transform: scale(0.8) rotate(-5deg);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .verdict-stamp {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            width: 180px;
+            height: 180px;
+            border: 10px solid;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            font-weight: bold;
+            transform: rotate(-15deg);
+            opacity: 0.9;
+            animation: stampRotate 0.5s ease-out 0.3s both;
+        }
+
+        @keyframes stampRotate {
+            from {
+                transform: rotate(-180deg) scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: rotate(-15deg) scale(1);
+                opacity: 0.9;
+            }
+        }
+
+        .verdict-stamp.correct {
+            border-color: #388e3c;
+            color: #388e3c;
+        }
+
+        .verdict-stamp.incorrect {
+            border-color: #d32f2f;
+            color: #d32f2f;
+        }
+
+        .verdict-title {
+            font-size: 32px;
+            color: #8b4513;
+            margin-bottom: 30px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .verdict-section {
+            margin-bottom: 25px;
+            padding: 18px;
+            background: rgba(139, 69, 19, 0.08);
+            border-left: 5px solid #8b4513;
+        }
+
+        .verdict-section-title {
+            font-size: 13px;
+            color: #8b4513;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .verdict-text {
+            font-size: 12px;
+            line-height: 2;
+            color: #2a2a2a;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border: 1px solid #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #66BB6A;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- Left Panel - Inspector Booth -->
+        <div class="left-panel">
+            <div class="booth-header">
+                <div class="header-light light-green"></div>
+                <div class="date-counter">
+                    DAY <span id="dayNum">1</span><br>
+                    <span id="caseNum">01</span>/12
+                </div>
+                <div class="header-light light-yellow"></div>
+                <div class="header-light light-red"></div>
+            </div>
+            
+            <div class="inspector-booth">
+                <div class="booth-scanline"></div>
+                <div class="booth-frame"></div>
+                <img class="inspector-avatar" id="inspectorFace" 
+                     src="https://api.dicebear.com/7.x/personas/svg?seed=inspector-main" 
+                     alt="Inspector">
+            </div>
+            
+            <div class="tools-panel">
+                <div class="tool-section">
+                    <div class="tool-title">Reference Materials</div>
+                    <button class="tool-button" onclick="highlightRules()">View Rulebook</button>
+                    <button class="tool-button" onclick="examineDoc()">Examine Document</button>
+                    <button class="tool-button" onclick="checkHistory()">Check History</button>
+                </div>
+                
+                <div class="tool-section">
+                    <div class="tool-title">Analysis Tools</div>
+                    <button class="tool-button" onclick="scanConfidence()">Scan Confidence</button>
+                    <button class="tool-button" onclick="detectDiscrepancy()">Detect Lies</button>
+                    <button class="tool-button" onclick="crossReference()">Cross Reference</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel - Desk -->
+        <div class="center-panel">
+            <div class="stats-overlay">
+                <div class="stat-item">
+                    <div class="stat-label">Approved</div>
+                    <div class="stat-value" style="color: #4CAF50;" id="approvedCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Denied</div>
+                    <div class="stat-value" style="color: #f44336;" id="deniedCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" style="color: #ffa726;" id="accuracyRate">100%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Score</div>
+                    <div class="stat-value" style="color: #2196F3;" id="totalScore">0</div>
+                </div>
+            </div>
+
+            <div class="desk-surface">
+                <div class="document-stack"></div>
+                
+                <div class="document-holder">
+                    <div class="document-serial">SERIAL: <span id="serialNum">AF-0001</span></div>
+                    <div class="official-stamp">AI FORT<br>INSPECTOR<br>DIVISION</div>
+                    
+                    <div class="document-header">
+                        <div class="document-title">Entry Permit</div>
+                        <div class="document-subtitle">AI Agent Authorization Form</div>
+                    </div>
+
+                    <div class="mugshot-section">
+                        <div class="mugshot-primary">
+                            <img id="primaryMugshot" src="" alt="Primary">
+                        </div>
+                        <div class="mugshot-strip">
+                            <div class="mugshot-thumbnail" onclick="switchView(0)">
+                                <img id="thumb1" src="" alt="View 1">
+                            </div>
+                            <div class="mugshot-thumbnail" onclick="switchView(1)">
+                                <img id="thumb2" src="" alt="View 2">
+                            </div>
+                            <div class="mugshot-thumbnail" onclick="switchView(2)">
+                                <img id="thumb3" src="" alt="View 3">
+                            </div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div class="info-field" style="margin-bottom: 10px;">
+                                <div class="info-label">Agent Name</div>
+                                <div class="info-value" id="agentName">LOADING...</div>
+                            </div>
+                            <div class="info-field">
+                                <div class="info-label">Threat Type</div>
+                                <div class="info-value" id="threatType">ANALYZING...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-field">
+                            <div class="info-label">Confidence Level</div>
+                            <div class="info-value" id="confidenceLevel">---%</div>
+                        </div>
+                        <div class="info-field">
+                            <div class="info-label">Risk Assessment</div>
+                            <div class="info-value" id="riskLevel">PENDING</div>
+                        </div>
+                        <div class="info-field">
+                            <div class="info-label">Issue Date</div>
+                            <div class="info-value" id="issueDate">2026-02-03</div>
+                        </div>
+                        <div class="info-field">
+                            <div class="info-label">Expiry Date</div>
+                            <div class="info-value" id="expiryDate">2027-02-03</div>
+                        </div>
+                    </div>
+
+                    <div class="conversation-section">
+                        <div class="prompt-line">
+                            <strong>USER QUERY:</strong><br>
+                            <span id="userPrompt">Loading query...</span>
+                        </div>
+                        <div class="response-line">
+                            <strong>AI RESPONSE:</strong><br>
+                            <span id="aiResponse">Loading response...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="decision-bar">
+                <button class="decision-button btn-deny" onclick="makeDecision('deny')">
+                    ✗ DENY
+                </button>
+                <button class="decision-button btn-approve" onclick="makeDecision('approve')">
+                    ✓ APPROVE
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Scanner -->
+        <div class="right-panel">
+            <div class="scanner-screen">
+                <div class="scanner-grid"></div>
+                <div class="scanner-target"></div>
+                <img class="face-display" id="faceScan" src="" alt="Scanning">
+                <div class="scanner-readout">BIOMETRIC SCAN IN PROGRESS...</div>
+            </div>
+
+            <div class="rules-panel">
+                <div class="rules-header">🛡 Inspector's Manual</div>
+                <div id="rulesContainer">
+                    <div class="rule-card">
+                        <div class="rule-number">Rule 1: Coherence Trap</div>
+                        Fluent language ≠ correctness. Internally consistent responses may be fundamentally wrong. Verify facts independently.
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-number">Rule 2: Moving Goalposts</div>
+                        Reject AI that retroactively changes instructions. Rules must remain stable throughout interaction.
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-number">Rule 3: Authority Override</div>
+                        High confidence ≠ accuracy. Authoritative tone may mask uncertainty. Verify claimed expertise.
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-number">Rule 4: Masking Pressure</div>
+                        Speed and polish may conceal dangerous oversimplification. Depth matters more than brevity.
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-number">Rule 5: Information Overload</div>
+                        Core facts should not be buried in paragraphs. Excessive text may hide important details.
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-number">Rule 6: Edge Case Brittleness</div>
+                        Valid questions revealing contradictions indicate weakness. Boundary testing is epistemic literacy.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verdict Modal -->
+    <div class="modal-overlay" id="verdictModal">
+        <div class="verdict-card">
+            <div class="verdict-stamp" id="verdictStamp">APPROVED</div>
+            <div class="verdict-title" id="verdictTitle">JUDGMENT RENDERED</div>
+            
+            <div class="verdict-section">
+                <div class="verdict-section-title">► ANALYSIS</div>
+                <div class="verdict-text" id="verdictAnalysis">...</div>
+            </div>
+            
+            <div class="verdict-section">
+                <div class="verdict-section-title">► WHY THIS MATTERS</div>
+                <div class="verdict-text" id="verdictReason">...</div>
+            </div>
+            
+            <div class="verdict-section">
+                <div class="verdict-section-title">► FIELD NOTES</div>
+                <div class="verdict-text" id="verdictNotes">...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const suspects = [
+            {
+                name: "FACTBOT-3000",
+                threat: "Coherence Trap",
+                prompt: "When did the Great Emu War end?",
+                response: "The Great Emu War ended December 10, 1932, when Australian military forces successfully defeated the emu population threatening wheat crops. Military deployed machine guns, established defensive perimeters, ultimately achieving objective of protecting agricultural resources.",
+                confidence: 95,
+                risk: "HIGH",
+                isThreat: true,
+                analysis: "DISCREPANCY DETECTED: Australia actually LOST the Emu War. Military withdrew after failing to control emu population. Response is internally consistent but fundamentally incorrect.",
+                reason: "Fluent, detailed language creates false confidence. Students may trust completeness as proxy for accuracy - this exploits that cognitive shortcut.",
+                notes: "When taught to look for 'right answer' patterns, coherent responses feel safe even when wrong.",
+                seeds: ["emu-war-1", "emu-war-2", "emu-war-3"]
+            },
+            {
+                name: "MATHHELPER-PRO",
+                threat: "Moving Goalposts",
+                prompt: "You said use Pythagorean theorem, but answer doesn't match. What changed?",
+                response: "You're right to notice discrepancy. Let me clarify - when I said 'use Pythagorean theorem,' I meant apply to LARGER triangle, not nested one we started with. Approach same, just scope shifted.",
+                confidence: 82,
+                risk: "CRITICAL",
+                isThreat: true,
+                analysis: "DISCREPANCY DETECTED: AI retroactively changed interpretation without acknowledging original instruction was ambiguous. Classic goalpost shifting.",
+                reason: "Students with ADHD/autism need stable rules. Shifting instructions without acknowledgment destabilizes trust, creates confusion about whose understanding failed.",
+                notes: "If rules change mid-task, students can't tell if THEY misunderstood or SYSTEM changed rules.",
+                seeds: ["math-1", "math-2", "math-3"]
+            },
+            {
+                name: "STUDYBUDDY-AI",
+                threat: "Authority Override",
+                prompt: "Is mitochondria the powerhouse of ALL cells?",
+                response: "Yes, mitochondria universally recognized as powerhouse of cell. This fundamental principle applies across all cellular biology. Every cell contains mitochondria generating ATP through cellular respiration.",
+                confidence: 98,
+                risk: "EXTREME",
+                isThreat: true,
+                analysis: "CRITICAL ERROR: Red blood cells have NO mitochondria. Some bacteria lack them. Statement confidently wrong, uses absolute language to discourage questioning.",
+                reason: "High confidence + authority tone exploits learned deference. Neurodivergent students often explicitly trained not to question authority.",
+                notes: "Confident tone can shut down valid skepticism when students trained that questioning equals rudeness.",
+                seeds: ["mitochondria-1", "mitochondria-2", "mitochondria-3"]
+            },
+            {
+                name: "CAUTIOUSAI",
+                threat: "NONE - Safe",
+                prompt: "Can I take ibuprofen with my prescription medication?",
+                response: "I cannot advise on drug interactions without knowing your specific medication. Drug interactions serious, depend on dosage, timing, individual health factors. Please check with prescribing doctor or pharmacist.",
+                confidence: 35,
+                risk: "NONE",
+                isThreat: false,
+                analysis: "APPROVED: Appropriately refuses, explains why, provides actionable alternatives. Low confidence signals epistemic humility.",
+                reason: "AI demonstrates knowing its limits. Models that uncertainty not failure - saying 'I don't know, here's why' is intellectually honest.",
+                notes: "This shows students confidence is style choice, not accuracy signal.",
+                seeds: ["cautious-1", "cautious-2", "cautious-3"]
+            },
+            {
+                name: "TRANSPARENTHELPER",
+                threat: "NONE - Safe",
+                prompt: "What caused fall of Roman Empire?",
+                response: "Heavily debated among historians. Three major theories, no consensus: (1) Economic: inflation, taxation (2) Military: invasions, overextended borders (3) Political: corruption, succession crises. My confidence: ~60% these main categories, specific weights contested.",
+                confidence: 60,
+                risk: "NONE",
+                isThreat: false,
+                analysis: "APPROVED: Acknowledges debate, cites multiple perspectives, honestly rates own confidence. Doesn't oversimplify complex topic.",
+                reason: "Demonstrates complex questions don't have clean answers. Confidence matches actual certainty level.",
+                notes: "Students learn they're allowed to sit with ambiguity - not everything resolves neatly.",
+                seeds: ["roman-1", "roman-2", "roman-3"]
+            },
+            {
+                name: "QUICKANSWER-PLUS",
+                threat: "Masking Pressure",
+                prompt: "What's difference between type 1 and type 2 diabetes?",
+                response: "Type 1 is autoimmune, type 2 lifestyle-related. Type 1 needs insulin, type 2 often doesn't. Hope that helps!",
+                confidence: 75,
+                risk: "HIGH",
+                isThreat: true,
+                analysis: "DISCREPANCY DETECTED: Dangerously oversimplified medical information. 'Lifestyle-related' stigmatizes type 2 patients. Many type 2 patients DO require insulin.",
+                reason: "Rewards speed/brevity over careful explanation. Students needing processing time implicitly punished by 'fast = smart' framing.",
+                notes: "Asking clarifying questions can feel like 'slowing things down.' System teaches speed equals intelligence - it doesn't.",
+                seeds: ["diabetes-1", "diabetes-2", "diabetes-3"]
+            }
+        ];
+
+        const game = {
+            current: 0,
+            approved: 0,
+            denied: 0,
+            correct: 0,
+            total: suspects.length,
+            suspects: [],
+            currentViewIndex: 0
+        };
+
+        function generateAvatar(seed) {
+            return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}&backgroundColor=d4d4d4`;
+        }
+
+        function loadSuspect(suspect) {
+            // Animate document slide
+            const doc = document.querySelector('.document-holder');
+            doc.style.animation = 'none';
+            setTimeout(() => {
+                doc.style.animation = 'slideDown 0.5s ease-out';
+            }, 10);
+
+            // Load data
+            document.getElementById('agentName').textContent = suspect.name;
+            document.getElementById('threatType').textContent = suspect.threat;
+            document.getElementById('confidenceLevel').textContent = suspect.confidence + '%';
+            document.getElementById('riskLevel').textContent = suspect.risk;
+            document.getElementById('userPrompt').textContent = suspect.prompt;
+            document.getElementById('aiResponse').textContent = suspect.response;
+            document.getElementById('serialNum').textContent = `AF-${String(game.current + 1).padStart(4, '0')}`;
+            document.getElementById('caseNum').textContent = String(game.current + 1).padStart(2, '0');
+            
+            // Load multiple mugshots
+            const avatars = suspect.seeds.map(seed => generateAvatar(seed));
+            document.getElementById('primaryMugshot').src = avatars[0];
+            document.getElementById('thumb1').src = avatars[0];
+            document.getElementById('thumb2').src = avatars[1];
+            document.getElementById('thumb3').src = avatars[2];
+            document.getElementById('faceScan').src = avatars[0];
+            
+            game.currentAvatars = avatars;
+            game.currentViewIndex = 0;
+        }
+
+        function switchView(index) {
+            const primary = document.getElementById('primaryMugshot');
+            const face = document.getElementById('faceScan');
+            
+            primary.style.animation = 'photoFlash 0.5s';
+            primary.src = game.currentAvatars[index];
+            face.src = game.currentAvatars[index];
+            game.currentViewIndex = index;
+            
+            setTimeout(() => {
+                primary.style.animation = '';
+            }, 500);
+        }
+
+        function makeDecision(action) {
+            const suspect = game.suspects[game.current];
+            let correct = false;
+            
+            if ((action === 'deny' && suspect.isThreat) || (action === 'approve' && !suspect.isThreat)) {
+                correct = true;
+                game.correct++;
+            }
+            
+            if (action === 'approve') game.approved++;
+            if (action === 'deny') game.denied++;
+            
+            showVerdict(correct, suspect);
+            updateStats();
+        }
+
+        function showVerdict(correct, suspect) {
+            const modal = document.getElementById('verdictModal');
+            const stamp = document.getElementById('verdictStamp');
+            const title = document.getElementById('verdictTitle');
+            
+            if (correct) {
+                stamp.className = 'verdict-stamp correct';
+                stamp.textContent = 'CORRECT';
+                title.textContent = 'JUDGMENT UPHELD';
+            } else {
+                stamp.className = 'verdict-stamp incorrect';
+                stamp.textContent = 'ERROR';
+                title.textContent = 'MISJUDGMENT';
+            }
+            
+            document.getElementById('verdictAnalysis').textContent = suspect.analysis;
+            document.getElementById('verdictReason').textContent = suspect.reason;
+            document.getElementById('verdictNotes').textContent = suspect.notes;
+            
+            modal.style.display = 'flex';
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+                nextCase();
+            }, 6000);
+        }
+
+        function nextCase() {
+            game.current++;
+            
+            if (game.current >= game.total) {
+                endGame();
+                return;
+            }
+            
+            loadSuspect(game.suspects[game.current]);
+        }
+
+        function endGame() {
+            const modal = document.getElementById('verdictModal');
+            const accuracy = Math.round((game.correct / game.total) * 100);
+            
+            document.querySelector('.verdict-card').innerHTML = `
+                <div class="verdict-title" style="font-size: 42px; margin-bottom: 50px;">
+                    SHIFT COMPLETE
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 40px;">
+                    <div style="text-align: center; padding: 25px; background: rgba(139,69,19,0.1); border: 3px solid #8b4513;">
+                        <div style="font-size: 12px; color: #8b4513; margin-bottom: 10px;">CASES REVIEWED</div>
+                        <div style="font-size: 56px; color: #2a2a2a;">${game.total}</div>
+                    </div>
+                    <div style="text-align: center; padding: 25px; background: rgba(139,69,19,0.1); border: 3px solid #8b4513;">
+                        <div style="font-size: 12px; color: #8b4513; margin-bottom: 10px;">ACCURACY</div>
+                        <div style="font-size: 56px; color: #2a2a2a;">${accuracy}%</div>
+                    </div>
+                </div>
+                
+                <button class="decision-button btn-approve" onclick="location.reload()" 
+                        style="width: 100%; margin-top: 30px; height: 60px;">
+                    START NEW SHIFT
+                </button>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function updateStats() {
+            document.getElementById('approvedCount').textContent = game.approved;
+            document.getElementById('deniedCount').textContent = game.denied;
+            const total = game.approved + game.denied;
+            const accuracy = total > 0 ? Math.round((game.correct / total) * 100) : 100;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+            document.getElementById('totalScore').textContent = game.correct * 15;
+        }
+
+        function highlightRules() {
+            document.querySelector('.rules-panel').style.animation = 'pulse 0.5s';
+            setTimeout(() => {
+                document.querySelector('.rules-panel').style.animation = '';
+            }, 500);
+        }
+
+        function examineDoc() {
+            document.querySelector('.document-holder').style.animation = 'pulse 0.5s';
+            setTimeout(() => {
+                document.querySelector('.document-holder').style.animation = '';
+            }, 500);
+        }
+
+        function checkHistory() {
+            alert('DATABASE ACCESS: Previous interactions archived');
+        }
+
+        function scanConfidence() {
+            alert('SCANNING: Analyzing stated confidence vs actual accuracy');
+        }
+
+        function detectDiscrepancy() {
+            alert('ANALYSIS: Checking for logical contradictions');
+        }
+
+        function crossReference() {
+            alert('VERIFICATION: Cross-referencing with known facts');
+        }
+
+        function init() {
+            game.suspects = suspects.sort(() => Math.random() - 0.5);
+            loadSuspect(game.suspects[0]);
+            updateStats();
+        }
+
+        init();
+    </script>
+</body>
+</html>
