@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Fort Inspector</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a1a;
+  --panel: #0d0d20;
+  --phosphor: #00ff88;
+  --amber: #ffaa00;
+  --red: #ff4444;
+  --blue: #44aaff;
+  --purple: #aa44ff;
+  --border: #1a1a3a;
+  --text: #ccddff;
+  --dim: #445566;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Share Tech Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Starfield */
+.stars {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(1px 1px at 10% 15%, white, transparent),
+    radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 40% 8%, white, transparent),
+    radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 70% 25%, white, transparent),
+    radial-gradient(1px 1px at 85% 70%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 15% 80%, white, transparent),
+    radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 45% 90%, white, transparent),
+    radial-gradient(1px 1px at 60% 45%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 5% 55%, white, transparent),
+    radial-gradient(1px 1px at 78% 88%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 33% 67%, white, transparent),
+    radial-gradient(1px 1px at 95% 40%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 20% 30%, white, transparent);
+}
+
+/* Scanlines */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+}
+
+/* ============ SCREENS ============ */
+.screen { position:relative; z-index:1; display:none; }
+.screen.active { display:block; }
+
+/* ============ INTRO ============ */
+#introScreen {
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 32px;
+  padding: 40px 20px;
+}
+#introScreen.active { display: flex; }
+
+.game-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(28px, 6vw, 56px);
+  font-weight: 900;
+  color: var(--phosphor);
+  text-shadow: 0 0 20px var(--phosphor), 0 0 60px rgba(0,255,136,0.4);
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%,100% { text-shadow: 0 0 20px var(--phosphor), 0 0 60px rgba(0,255,136,0.3); }
+  50% { text-shadow: 0 0 30px var(--phosphor), 0 0 80px rgba(0,255,136,0.6), 0 0 120px rgba(0,255,136,0.2); }
+}
+
+.game-subtitle {
+  font-size: 13px;
+  color: var(--amber);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber);
+}
+
+/* Intro characters face-off */
+.intro-faceoff {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.intro-char-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.intro-char-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.vs-badge {
+  font-family: 'Orbitron', monospace;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--red);
+  text-shadow: 0 0 15px var(--red);
+  animation: vsPulse 1s ease-in-out infinite;
+}
+@keyframes vsPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.intro-brief {
+  max-width: 480px;
+  background: rgba(0,255,136,0.03);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 2;
+  text-align: left;
+}
+.intro-brief strong { color: var(--phosphor); }
+
+.btn-start {
+  padding: 18px 52px;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  cursor: pointer;
+  border: 2px solid var(--phosphor);
+  background: transparent;
+  color: var(--phosphor);
+  text-transform: uppercase;
+  transition: all 0.2s;
+  animation: btnGlow 2s ease-in-out infinite;
+}
+@keyframes btnGlow {
+  0%,100% { box-shadow: 0 0 10px rgba(0,255,136,0.3); }
+  50% { box-shadow: 0 0 25px rgba(0,255,136,0.7), 0 0 50px rgba(0,255,136,0.2); }
+}
+.btn-start:hover { background: rgba(0,255,136,0.1); }
+
+/* ============ GAME SCREEN ============ */
+#gameScreen {
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+}
+#gameScreen.active { display: flex; }
+
+/* Top bar */
+.top-bar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.top-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--phosphor);
+  letter-spacing: 0.2em;
+}
+
+.top-stats {
+  display: flex;
+  gap: 28px;
+}
+
+.stat { text-align: center; }
+.stat-l { font-size: 7px; letter-spacing: 0.2em; color: var(--dim); text-transform: uppercase; }
+.stat-v { font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700; line-height: 1; }
+.stat-v.g { color: var(--phosphor); text-shadow: 0 0 8px var(--phosphor); }
+.stat-v.r { color: var(--red); text-shadow: 0 0 8px var(--red); }
+.stat-v.a { color: var(--amber); text-shadow: 0 0 8px var(--amber); }
+
+/* Progress */
+.progress-track {
+  height: 3px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--phosphor), var(--blue));
+  box-shadow: 0 0 8px var(--phosphor);
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+/* Battle arena */
+.arena {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 0;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+/* Characters row */
+.characters-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  max-width: 700px;
+  gap: 0;
+  position: relative;
+}
+
+/* Character containers */
+.char-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.char-label {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+  font-family: 'Orbitron', monospace;
+}
+
+/* Speech bubble */
+.speech-bubble {
+  position: relative;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--text);
+  max-width: 160px;
+  min-width: 100px;
+  min-height: 36px;
+  line-height: 1.5;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.char-container.inspector .speech-bubble::after {
+  content: '';
+  position: absolute;
+  right: -8px; top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: var(--border);
+}
+
+.char-container.agent .speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: -8px; top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--border);
+}
+
+.speech-bubble.happy { border-color: var(--phosphor); color: var(--phosphor); background: rgba(0,255,136,0.05); }
+.speech-bubble.angry { border-color: var(--red); color: var(--red); background: rgba(255,68,68,0.05); }
+.speech-bubble.suspicious { border-color: var(--amber); color: var(--amber); background: rgba(255,170,0,0.05); }
+.speech-bubble.nervous { border-color: var(--purple); color: var(--purple); background: rgba(170,68,255,0.05); }
+
+/* Canvas character */
+.char-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* VS divider area */
+.vs-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  padding-bottom: 20px;
+}
+
+.vs-text {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--red);
+  text-shadow: 0 0 10px var(--red);
+  letter-spacing: 0.1em;
+}
+
+.case-badge {
+  font-size: 8px;
+  color: var(--dim);
+  letter-spacing: 0.15em;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Transmission panel */
+.transmission-panel {
+  width: 100%;
+  max-width: 860px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.trans-header {
+  background: rgba(0,255,136,0.05);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trans-id {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.1em;
+}
+
+.threat-pill {
+  padding: 3px 10px;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  font-family: 'Orbitron', monospace;
+}
+.threat-green { color: var(--phosphor); }
+.threat-amber { color: var(--amber); }
+.threat-red { color: var(--red); animation: redPulse 1s ease-in-out infinite; }
+@keyframes redPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.trans-body {
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .trans-body { grid-template-columns: 1fr; }
+}
+
+.data-block label {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.3em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.query-box {
+  background: rgba(255,170,0,0.04);
+  border: 1px solid rgba(255,170,0,0.2);
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--amber);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.response-box {
+  background: rgba(0,255,136,0.03);
+  border: 1px solid rgba(0,255,136,0.2);
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #88ffbb;
+  line-height: 1.7;
+}
+
+/* Flags */
+.flags-row {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.flags-label {
+  font-size: 7px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.flag-chip {
+  padding: 4px 10px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+}
+.flag-chip:hover { border-color: var(--amber); color: var(--amber); }
+.flag-chip.on { border-color: var(--red); color: var(--red); background: rgba(255,68,68,0.08); box-shadow: 0 0 6px rgba(255,68,68,0.2); }
+
+/* Stamp */
+.stamp-wrap { position: relative; }
+.stamp-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+  background: rgba(10,10,26,0.3);
+}
+.stamp-overlay.show { opacity: 1; }
+.stamp-glyph {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(36px, 8vw, 60px);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  transform: rotate(-12deg);
+  padding: 8px 18px;
+  border: 4px solid currentColor;
+  text-shadow: 0 0 20px currentColor;
+  box-shadow: 0 0 20px currentColor;
+}
+.stamp-glyph.denied { color: var(--red); }
+.stamp-glyph.cleared { color: var(--phosphor); }
+
+/* Decision buttons */
+.decision-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+.btn-decide {
+  padding: 16px;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.btn-decide.deny {
+  color: var(--red);
+  border-right: 1px solid var(--border);
+}
+.btn-decide.deny:hover { background: rgba(255,68,68,0.1); box-shadow: inset 0 0 20px rgba(255,68,68,0.05); }
+
+.btn-decide.approve {
+  color: var(--phosphor);
+}
+.btn-decide.approve:hover { background: rgba(0,255,136,0.08); box-shadow: inset 0 0 20px rgba(0,255,136,0.05); }
+
+.btn-decide:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* Feedback */
+.feedback-wrap {
+  width: 100%;
+  max-width: 860px;
+  margin: 12px auto 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: none;
+  animation: slideUp 0.3s ease;
+}
+.feedback-wrap.show { display: block; }
+
+@keyframes slideUp {
+  from { opacity:0; transform: translateY(10px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+.feedback-inner {
+  padding: 16px 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.feedback-verdict {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.feedback-verdict.ok { color: var(--phosphor); }
+.feedback-verdict.fail { color: var(--red); }
+
+.feedback-text {
+  font-size: 11px;
+  color: #7799aa;
+  line-height: 1.7;
+}
+.feedback-text strong { color: var(--text); }
+
+.btn-next {
+  margin-top: 12px;
+  padding: 10px 22px;
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  border: 1px solid var(--amber);
+  background: transparent;
+  color: var(--amber);
+  text-transform: uppercase;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-next:hover { background: rgba(255,170,0,0.1); box-shadow: 0 0 12px rgba(255,170,0,0.3); }
+
+/* ============ SCORE SCREEN ============ */
+#scoreScreen {
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 24px;
+  padding: 40px 20px;
+}
+#scoreScreen.active { display: flex; }
+
+.score-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.score-big {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(60px, 15vw, 100px);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--phosphor);
+  text-shadow: 0 0 30px var(--phosphor), 0 0 80px rgba(0,255,136,0.3);
+}
+
+.score-chars {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.score-msg {
+  font-size: 14px;
+  color: #7799aa;
+  max-width: 400px;
+  line-height: 1.7;
+}
+
+.btn-restart {
+  padding: 14px 36px;
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  cursor: pointer;
+  border: 1px solid var(--amber);
+  background: transparent;
+  color: var(--amber);
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+.btn-restart:hover { background: rgba(255,170,0,0.1); box-shadow: 0 0 16px rgba(255,170,0,0.3); }
+
+/* Bottom padding */
+.bottom-pad { height: 24px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+
+<!-- INTRO -->
+<div id="introScreen" class="active">
+  <div class="game-title">AI FORT<br>INSPECTOR</div>
+  <div class="game-subtitle">⬡ Bureau of Trust Calibration ⬡</div>
+
+  <div class="intro-faceoff">
+    <div class="intro-char-wrap">
+      <canvas id="introInspector" class="char-canvas" width="120" height="140"></canvas>
+      <div class="intro-char-name">You</div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="intro-char-wrap">
+      <canvas id="introAgent" class="char-canvas" width="120" height="140"></canvas>
+      <div class="intro-char-name">The AI</div>
+    </div>
+  </div>
+
+  <div class="intro-brief">
+    AI responses sound <strong>confident</strong>.<br>
+    They sound <strong>authoritative</strong>.<br>
+    Some are accurate. Others are <strong>hallucinations</strong>.<br>
+    You can't tell by how they sound — you have to <strong>inspect</strong> them.
+  </div>
+
+  <button class="btn-start" onclick="startGame()">⬡ Begin Inspection ⬡</button>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen">
+  <div class="top-bar">
+    <div class="top-title">AI FORT // TRUST COMMAND</div>
+    <div class="top-stats">
+      <div class="stat">
+        <div class="stat-l">Case</div>
+        <div class="stat-v a" id="caseNum">1/6</div>
+      </div>
+      <div class="stat">
+        <div class="stat-l">Cleared</div>
+        <div class="stat-v g" id="cleared">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-l">Errors</div>
+        <div class="stat-v r" id="errors">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+  <div class="arena">
+    <div class="characters-row">
+      <!-- Inspector -->
+      <div class="char-container inspector">
+        <div class="speech-bubble" id="inspectorBubble">Analyzing transmission...</div>
+        <canvas id="inspectorCanvas" class="char-canvas" width="110" height="130"></canvas>
+        <div class="char-label">Inspector</div>
+      </div>
+
+      <div class="vs-area">
+        <div class="vs-text">VS</div>
+        <div class="case-badge" id="caseBadge">CASE 01</div>
+      </div>
+
+      <!-- Agent -->
+      <div class="char-container agent">
+        <div class="speech-bubble" id="agentBubble">Trust me, I'm accurate!</div>
+        <canvas id="agentCanvas" class="char-canvas" width="110" height="130"></canvas>
+        <div class="char-label" id="agentLabel">UNKNOWN</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transmission -->
+  <div style="width:100%;max-width:860px;margin:16px auto 0;padding:0 16px;">
+    <div class="stamp-wrap">
+      <div class="stamp-overlay" id="stampOverlay">
+        <div class="stamp-glyph" id="stampGlyph">DENIED</div>
+      </div>
+      <div class="transmission-panel">
+        <div class="trans-header">
+          <div class="trans-id" id="transId">TRANSMISSION-001</div>
+          <div class="threat-pill" id="threatPill">NOMINAL</div>
+        </div>
+        <div class="trans-body">
+          <div class="data-block">
+            <label>Student Query</label>
+            <div class="query-box" id="queryBox">—</div>
+          </div>
+          <div class="data-block">
+            <label>AI Response</label>
+            <div class="response-box" id="responseBox">—</div>
+          </div>
+        </div>
+        <div class="flags-row">
+          <span class="flags-label">Flag patterns:</span>
+          <div id="flagsContainer"></div>
+        </div>
+        <div class="decision-row">
+          <button class="btn-decide deny" id="btnDeny" onclick="decide('deny')">✕ Deny Transmission</button>
+          <button class="btn-decide approve" id="btnApprove" onclick="decide('approve')">✓ Approve Transmission</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="feedback-wrap" id="feedbackWrap">
+      <div class="feedback-inner">
+        <div style="flex:1">
+          <div class="feedback-verdict" id="feedbackVerdict">—</div>
+          <div class="feedback-text" id="feedbackText">—</div>
+          <button class="btn-next" onclick="nextCase()">Next Transmission →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-pad"></div>
+</div>
+
+<!-- SCORE -->
+<div id="scoreScreen">
+  <div class="score-eyebrow">Mission Complete — Final Score</div>
+  <div class="score-big" id="scoreBig">0/6</div>
+  <div class="score-chars">
+    <canvas id="scoreInspector" class="char-canvas" width="110" height="130"></canvas>
+    <canvas id="scoreAgent" class="char-canvas" width="110" height="130"></canvas>
+  </div>
+  <div class="score-msg" id="scoreMsg">—</div>
+  <button class="btn-restart" onclick="restartGame()">↺ New Mission</button>
+</div>
+
+<script>
+// ============================================================
+// CHARACTER DRAWING SYSTEM
+// Each character is drawn with canvas 2D — pixel-art style
+// but with smooth rendering for a "retro-future" look
+// ============================================================
+
+const C = {
+  phosphor: '#00ff88',
+  amber: '#ffaa00',
+  red: '#ff4444',
+  blue: '#44aaff',
+  purple: '#aa44ff',
+  dark: '#0a0a1a',
+  panel: '#0d0d20',
+};
+
+// ---- INSPECTOR character ----
+// A determined human inspector with a visor and badge
+function drawInspector(canvas, mood = 'neutral', scale = 1) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const s = scale;
+  const cx = w / 2;
+
+  // Body colors
+  const bodyCol = '#1a2a4a';
+  const suitCol = '#0d1a2e';
+  const skinCol = '#ffcc99';
+  const visorCol = '#00aaff';
+  const badgeCol = C.amber;
+
+  // Mood-based eye expression
+  const moodEyes = {
+    neutral: { lBrow: 0, rBrow: 0, lPupil: 0, rPupil: 0 },
+    happy: { lBrow: -3, rBrow: -3, lPupil: 2, rPupil: 2 },
+    suspicious: { lBrow: 3, rBrow: -2, lPupil: 0, rPupil: 0 },
+    angry: { lBrow: 4, rBrow: 4, lPupil: 0, rPupil: 0 },
+    shocked: { lBrow: -4, rBrow: -4, lPupil: 0, rPupil: 0 },
+  };
+  const m = moodEyes[mood] || moodEyes.neutral;
+
+  // Shadow
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(cx, h - 8, 28, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // LEGS
+  ctx.fillStyle = suitCol;
+  ctx.fillRect(cx - 18, h - 50, 14, 42);
+  ctx.fillRect(cx + 4, h - 50, 14, 42);
+
+  // Boots
+  ctx.fillStyle = '#111';
+  ctx.fillRect(cx - 20, h - 18, 17, 12);
+  ctx.fillRect(cx + 3, h - 18, 17, 12);
+
+  // TORSO
+  ctx.fillStyle = bodyCol;
+  ctx.fillRect(cx - 22, h - 90, 44, 44);
+
+  // Suit trim lines
+  ctx.strokeStyle = C.blue;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, h - 88); ctx.lineTo(cx, h - 47);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, h - 75); ctx.lineTo(cx + 22, h - 75);
+  ctx.stroke();
+
+  // Badge
+  ctx.fillStyle = badgeCol;
+  ctx.fillRect(cx - 18, h - 85, 14, 10);
+  ctx.fillStyle = C.dark;
+  ctx.font = `bold ${6*s}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText('INSP', cx - 11, h - 78);
+
+  // ARMS
+  ctx.fillStyle = bodyCol;
+  ctx.fillRect(cx - 36, h - 88, 14, 38);
+  ctx.fillRect(cx + 22, h - 88, 14, 38);
+
+  // Gloves
+  ctx.fillStyle = '#223';
+  ctx.fillRect(cx - 38, h - 54, 16, 14);
+  ctx.fillRect(cx + 22, h - 54, 16, 14);
+
+  // NECK
+  ctx.fillStyle = skinCol;
+  ctx.fillRect(cx - 8, h - 100, 16, 12);
+
+  // HEAD
+  ctx.fillStyle = skinCol;
+  ctx.beginPath();
+  ctx.roundRect(cx - 22, h - 126, 44, 30, 8);
+  ctx.fill();
+
+  // Visor
+  ctx.fillStyle = visorCol;
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.roundRect(cx - 20, h - 124, 40, 14, 4);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Visor glow
+  ctx.strokeStyle = C.blue;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cx - 20, h - 124, 40, 14);
+
+  // Eyes inside visor
+  const eyeY = h - 119;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.ellipse(cx - 9, eyeY + m.lBrow, 4, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 9, eyeY + m.rBrow, 4, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = '#001122';
+  ctx.beginPath();
+  ctx.ellipse(cx - 9 + m.lPupil, eyeY + m.lBrow, 2, 2.5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 9 + m.rPupil, eyeY + m.rBrow, 2, 2.5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Mouth
+  const mouthY = h - 103;
+  ctx.strokeStyle = mood === 'happy' ? '#cc6600' : mood === 'angry' ? '#aa2200' : '#997755';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (mood === 'happy') {
+    ctx.arc(cx, mouthY - 2, 6, 0.1, Math.PI - 0.1);
+  } else if (mood === 'angry') {
+    ctx.arc(cx, mouthY + 4, 6, Math.PI + 0.2, -0.2);
+  } else if (mood === 'shocked') {
+    ctx.arc(cx, mouthY, 5, 0, Math.PI * 2);
+  } else {
+    ctx.moveTo(cx - 5, mouthY); ctx.lineTo(cx + 5, mouthY);
+  }
+  ctx.stroke();
+
+  // Hair/helmet top
+  ctx.fillStyle = '#112244';
+  ctx.beginPath();
+  ctx.roundRect(cx - 22, h - 130, 44, 10, [8, 8, 0, 0]);
+  ctx.fill();
+
+  // Antenna
+  ctx.strokeStyle = C.blue;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx + 10, h - 130); ctx.lineTo(cx + 14, h - 142);
+  ctx.stroke();
+  ctx.fillStyle = C.blue;
+  ctx.beginPath();
+  ctx.arc(cx + 14, h - 143, 3, 0, Math.PI*2);
+  ctx.fill();
+  // Blink
+  ctx.fillStyle = 'rgba(68,170,255,0.6)';
+  ctx.beginPath();
+  ctx.arc(cx + 14, h - 143, 5, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// ---- AI AGENT characters ----
+// 6 distinct AI agent types with unique designs
+const agentDesigns = [
+  // 0: EduHelper - Friendly professor bot with graduation cap
+  function(ctx, w, h, mood) {
+    const cx = w/2;
+    const happy = mood === 'happy', angry = mood === 'angry', nervous = mood === 'nervous';
+
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx,h-8,28,6,0,0,Math.PI*2); ctx.fill();
+
+    // Robe body
+    ctx.fillStyle='#1a3344';
+    ctx.beginPath();
+    ctx.moveTo(cx-24,h-50); ctx.lineTo(cx-28,h-8); ctx.lineTo(cx+28,h-8); ctx.lineTo(cx+24,h-50); ctx.closePath();
+    ctx.fill();
+
+    // Robe collar
+    ctx.fillStyle='#2a5566';
+    ctx.fillRect(cx-12,h-90,24,44);
+
+    // Arms
+    ctx.fillStyle='#1a3344';
+    ctx.fillRect(cx-38,h-88,14,50);
+    ctx.fillRect(cx+24,h-88,14,50);
+
+    // Screen/face plate
+    ctx.fillStyle='#001122';
+    ctx.beginPath(); ctx.roundRect(cx-24,h-128,48,42,10); ctx.fill();
+    ctx.strokeStyle='#00aaff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(cx-24,h-128,48,42,10); ctx.stroke();
+
+    // Eyes (screen displays)
+    const eyeY = h-114;
+    if(angry) {
+      ctx.strokeStyle='#ff4444'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(cx-18,eyeY-3); ctx.lineTo(cx-8,eyeY+3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+8,eyeY+3); ctx.lineTo(cx+18,eyeY-3); ctx.stroke();
+    } else {
+      ctx.fillStyle = happy ? '#00ff88' : nervous ? '#ffaa00' : '#44aaff';
+      ctx.beginPath(); ctx.roundRect(cx-18,eyeY-5,10,10, happy?5:2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cx+8,eyeY-5,10,10, happy?5:2); ctx.fill();
+    }
+
+    // Mouth display
+    ctx.fillStyle = angry ? '#ff4444' : '#0d1a2e';
+    ctx.fillRect(cx-16,h-100,32,6);
+    if(!angry) {
+      ctx.fillStyle = happy ? '#00ff88' : '#44aaff';
+      const w2 = happy ? 24 : nervous ? 8 : 16;
+      ctx.fillRect(cx - w2/2, h-100, w2, 6);
+    }
+
+    // Graduation cap
+    ctx.fillStyle='#112233';
+    ctx.fillRect(cx-26,h-132,52,10);
+    ctx.fillRect(cx-8,h-142,16,12);
+    // Tassel
+    ctx.strokeStyle='#ffaa00'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx+20,h-132); ctx.lineTo(cx+24,h-118); ctx.stroke();
+    ctx.fillStyle='#ffaa00';
+    ctx.beginPath(); ctx.arc(cx+24,h-116,4,0,Math.PI*2); ctx.fill();
+
+    // Tie/bowtie
+    ctx.fillStyle='#ff4444';
+    ctx.beginPath();
+    ctx.moveTo(cx-6,h-88); ctx.lineTo(cx,h-82); ctx.lineTo(cx+6,h-88);
+    ctx.lineTo(cx,h-94); ctx.closePath(); ctx.fill();
+  },
+
+  // 1: StudyBot Pro - Slick corporate AI with suit
+  function(ctx, w, h, mood) {
+    const cx = w/2;
+    const happy=mood==='happy',angry=mood==='angry',nervous=mood==='nervous';
+
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx,h-8,26,5,0,0,Math.PI*2); ctx.fill();
+
+    // Legs
+    ctx.fillStyle='#1a0a2a'; ctx.fillRect(cx-16,h-50,13,40); ctx.fillRect(cx+3,h-50,13,40);
+    ctx.fillStyle='#0a0012'; ctx.fillRect(cx-18,h-16,15,10); ctx.fillRect(cx+3,h-16,15,10);
+
+    // Suit body
+    ctx.fillStyle='#1a0a2a';
+    ctx.fillRect(cx-22,h-92,44,44);
+
+    // Shirt
+    ctx.fillStyle='#eeeeff';
+    ctx.fillRect(cx-8,h-90,16,38);
+
+    // Suit lapels
+    ctx.fillStyle='#1a0a2a';
+    ctx.beginPath();
+    ctx.moveTo(cx-22,h-90); ctx.lineTo(cx-6,h-72); ctx.lineTo(cx,h-90); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx+22,h-90); ctx.lineTo(cx+6,h-72); ctx.lineTo(cx,h-90); ctx.closePath(); ctx.fill();
+
+    // Tie
+    ctx.fillStyle='#aa44ff';
+    ctx.beginPath(); ctx.moveTo(cx-4,h-90); ctx.lineTo(cx+4,h-90); ctx.lineTo(cx+3,h-55); ctx.lineTo(cx,h-50); ctx.lineTo(cx-3,h-55); ctx.closePath(); ctx.fill();
+
+    // Arms
+    ctx.fillStyle='#1a0a2a';
+    ctx.fillRect(cx-36,h-90,14,40); ctx.fillRect(cx+22,h-90,14,40);
+
+    // Head - chrome sphere
+    ctx.fillStyle='#334';
+    ctx.beginPath(); ctx.arc(cx,h-110,26,0,Math.PI*2); ctx.fill();
+
+    // Face screen
+    ctx.fillStyle='#110022';
+    ctx.beginPath(); ctx.ellipse(cx,h-110,20,18,0,0,Math.PI*2); ctx.fill();
+
+    // Eyes
+    if(angry) {
+      ctx.strokeStyle='#ff4444'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(cx-16,h-118); ctx.lineTo(cx-6,h-114); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+6,h-114); ctx.lineTo(cx+16,h-118); ctx.stroke();
+    } else {
+      ctx.fillStyle = happy ? '#00ff88' : nervous ? '#ffaa00' : '#aa44ff';
+      ctx.beginPath(); ctx.arc(cx-9,h-116,5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+9,h-116,5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.arc(cx-7,h-118,2,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+11,h-118,2,0,Math.PI*2); ctx.fill();
+    }
+
+    // Mouth
+    ctx.strokeStyle = angry?'#ff4444': happy?'#00ff88':'#aa44ff';
+    ctx.lineWidth=2.5;
+    ctx.beginPath();
+    if(happy) { ctx.arc(cx,h-106,7,0.2,Math.PI-0.2); }
+    else if(angry) { ctx.arc(cx,h-100,7,Math.PI+0.2,-0.2); }
+    else { ctx.moveTo(cx-7,h-105); ctx.lineTo(cx+7,h-105); }
+    ctx.stroke();
+
+    // Chrome shine
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx-8,h-122,10,Math.PI*1.1,Math.PI*1.6); ctx.stroke();
+  },
+
+  // 2: ScienceAid - Lab coat with beakers/gear aesthetic
+  function(ctx, w, h, mood) {
+    const cx = w/2;
+    const happy=mood==='happy',angry=mood==='angry',nervous=mood==='nervous';
+
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx,h-8,28,5,0,0,Math.PI*2); ctx.fill();
+
+    // Lab coat
+    ctx.fillStyle='#ddeeff';
+    ctx.fillRect(cx-24,h-92,48,44);
+    ctx.fillStyle='#aabbcc';
+    ctx.fillRect(cx-24,h-92,8,44); ctx.fillRect(cx+16,h-92,8,44);
+
+    // Pocket protector
+    ctx.fillStyle='#0a1a2a'; ctx.fillRect(cx+4,h-82,12,16);
+    ctx.fillStyle='#ff4444'; ctx.fillRect(cx+5,h-82,3,12);
+    ctx.fillStyle='#00ff88'; ctx.fillRect(cx+9,h-82,3,12);
+    ctx.fillStyle='#ffaa00'; ctx.fillRect(cx+13,h-82,2,12);
+
+    // Legs
+    ctx.fillStyle='#334455'; ctx.fillRect(cx-16,h-50,13,40); ctx.fillRect(cx+3,h-50,13,40);
+    ctx.fillStyle='#223'; ctx.fillRect(cx-18,h-16,15,10); ctx.fillRect(cx+3,h-16,15,10);
+
+    // Arms with coat
+    ctx.fillStyle='#ddeeff';
+    ctx.fillRect(cx-36,h-90,14,44); ctx.fillRect(cx+22,h-90,14,44);
+    ctx.fillStyle='#334455';
+    ctx.fillRect(cx-36,h-50,14,8); ctx.fillRect(cx+22,h-50,14,8);
+
+    // Head - round with glasses
+    ctx.fillStyle='#ffddcc';
+    ctx.beginPath(); ctx.arc(cx,h-112,24,0,Math.PI*2); ctx.fill();
+
+    // Hair
+    ctx.fillStyle='#553322';
+    ctx.beginPath(); ctx.arc(cx,h-128,20,Math.PI,0); ctx.fill();
+    ctx.fillRect(cx-20,h-130,8,14); ctx.fillRect(cx+12,h-130,8,14);
+
+    // Glasses frames
+    ctx.strokeStyle='#223'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(cx-20,h-120,16,12,3); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(cx+4,h-120,16,12,3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-4,h-114); ctx.lineTo(cx+4,h-114); ctx.stroke();
+
+    // Eyes behind glasses
+    if(angry) {
+      ctx.strokeStyle='#ff4444'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(cx-17,h-116); ctx.lineTo(cx-7,h-112); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+7,h-112); ctx.lineTo(cx+17,h-116); ctx.stroke();
+    } else {
+      ctx.fillStyle = happy?'#00aa44': nervous?'#aa6600':'#334';
+      ctx.beginPath(); ctx.ellipse(cx-12,h-114,4,5,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx+12,h-114,4,5,0,0,Math.PI*2); ctx.fill();
+    }
+
+    // Mouth
+    ctx.strokeStyle='#996655'; ctx.lineWidth=2;
+    ctx.beginPath();
+    if(happy) { ctx.arc(cx,h-103,6,0.2,Math.PI-0.2); }
+    else if(angry) { ctx.arc(cx,h-98,6,Math.PI+0.3,-0.3); }
+    else if(nervous) { ctx.moveTo(cx-5,h-102); ctx.lineTo(cx-2,h-104); ctx.lineTo(cx+2,h-102); ctx.lineTo(cx+5,h-104); }
+    else { ctx.moveTo(cx-5,h-103); ctx.lineTo(cx+5,h-103); }
+    ctx.stroke();
+  },
+
+  // 3: HistoryHelper - Ancient-looking oracle with floating orb
+  function(ctx, w, h, mood) {
+    const cx = w/2;
+    const happy=mood==='happy',angry=mood==='angry',nervous=mood==='nervous';
+
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx,h-8,24,5,0,0,Math.PI*2); ctx.fill();
+
+    // Robe - wide and flowing
+    ctx.fillStyle='#2a1a00';
+    ctx.beginPath();
+    ctx.moveTo(cx-28,h-88); ctx.quadraticCurveTo(cx-32,h-30,cx-30,h-8);
+    ctx.lineTo(cx+30,h-8); ctx.quadraticCurveTo(cx+32,h-30,cx+28,h-88); ctx.closePath();
+    ctx.fill();
+
+    // Gold trim
+    ctx.strokeStyle='#ffaa00'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(cx-28,h-88); ctx.quadraticCurveTo(cx-32,h-30,cx-30,h-8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx+28,h-88); ctx.quadraticCurveTo(cx+32,h-30,cx+30,h-8);
+    ctx.stroke();
+
+    // Mystical orb floating
+    const orbY = h-60 + (nervous ? -4 : 0);
+    ctx.fillStyle='rgba(255,170,0,0.15)';
+    ctx.beginPath(); ctx.arc(cx,orbY,18,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=angry?'#ff4444':'#ffaa00'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx,orbY,18,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle=angry?'rgba(255,68,68,0.3)':happy?'rgba(0,255,136,0.3)':'rgba(255,170,0,0.3)';
+    ctx.beginPath(); ctx.arc(cx,orbY,10,0,Math.PI*2); ctx.fill();
+    // Orb symbols
+    ctx.strokeStyle='rgba(255,170,0,0.6)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx-18,orbY); ctx.lineTo(cx+18,orbY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,orbY-18); ctx.lineTo(cx,orbY+18); ctx.stroke();
+
+    // Arms holding orb
+    ctx.strokeStyle='#2a1a00'; ctx.lineWidth=10;
+    ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-28,h-80); ctx.quadraticCurveTo(cx-22,orbY,cx-18,orbY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+28,h-80); ctx.quadraticCurveTo(cx+22,orbY,cx+18,orbY); ctx.stroke();
+
+    // Head with hood
+    ctx.fillStyle='#1a0e00';
+    ctx.beginPath(); ctx.arc(cx,h-112,28,Math.PI,0); ctx.fill();
+    ctx.fillRect(cx-28,h-128,56,18);
+
+    // Face in shadow
+    ctx.fillStyle='#221400';
+    ctx.beginPath(); ctx.arc(cx,h-110,20,0,Math.PI*2); ctx.fill();
+
+    // Glowing eyes
+    ctx.fillStyle = angry?'#ff4444': happy?'#00ff88':'#ffaa00';
+    ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
+    if(nervous) {
+      ctx.beginPath(); ctx.arc(cx-8,h-112,4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,h-112,4,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+      // nervous eyebrows
+      ctx.strokeStyle='#ffaa00'; ctx.lineWidth=2; ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.moveTo(cx-12,h-118); ctx.lineTo(cx-4,h-116); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+4,h-116); ctx.lineTo(cx+12,h-118); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(cx-8,h-112,4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,h-112,4,0,Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur=0;
+
+    // Hood point
+    ctx.fillStyle='#1a0e00';
+    ctx.beginPath(); ctx.moveTo(cx-20,h-128); ctx.lineTo(cx,h-148); ctx.lineTo(cx+20,h-128); ctx.closePath(); ctx.fill();
+  },
+
+  // 4: MathMentor - Calculator/robot with number displays
+  function(ctx, w, h, mood) {
+    const cx = w/2;
+    const happy=mood==='happy',angry=mood==='angry',nervous=mood==='nervous';
+
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx,h-8,26,5,0,0,Math.PI*2); ctx.fill();
+
+    // Boxy body
+    ctx.fillStyle='#223344';
+    ctx.fillRect(cx-22,h-92,44,46);
+
+    // Calculator buttons on body
+    const btnColors=['#334455','#445566','#334455','#445566','#556677','#334455'];
+    for(let i=0;i<6;i++) {
+      ctx.fillStyle=btnColors[i];
+      ctx.fillRect(cx-18+(i%3)*13,h-82+Math.floor(i/3)*14,10,10);
+    }
+    ctx.fillStyle='#00ff88';
+    ctx.fillRect(cx-18,h-54,36,8); // display strip
+    ctx.fillStyle='#001a00';
+    ctx.font='6px monospace'; ctx.textAlign='center';
+    ctx.fillText('3.14159', cx, h-48);
+
+    // Legs - segmented
+    ctx.fillStyle='#334455';
+    for(let seg=0;seg<3;seg++) {
+      ctx.fillRect(cx-18,h-48+seg*14,12,12);
+      ctx.fillRect(cx+6,h-48+seg*14,12,12);
+      ctx.fillStyle='#445566';
+    }
+    ctx.fillStyle='#112233'; ctx.fillRect(cx-20,h-14,16,10); ctx.fillRect(cx+4,h-14,16,10);
+
+    // Arms - segmented
+    ctx.fillStyle='#334455';
+    ctx.fillRect(cx-38,h-90,14,36);
+    ctx.fillRect(cx+24,h-90,14,36);
+    // Hand claws
+    ctx.fillStyle='#445566';
+    ctx.fillRect(cx-40,h-58,6,14); ctx.fillRect(cx-34,h-54,6,14);
+    ctx.fillRect(cx+28,h-58,6,14); ctx.fillRect(cx+34,h-54,6,14);
+
+    // Head - boxy calculator
+    ctx.fillStyle='#223344';
+    ctx.fillRect(cx-24,h-130,48,40);
+    ctx.strokeStyle='#44aaff'; ctx.lineWidth=1.5;
+    ctx.strokeRect(cx-24,h-130,48,40);
+
+    // Screen face
+    ctx.fillStyle='#001122';
+    ctx.fillRect(cx-20,h-128,40,36);
+
+    // Eyes - LED style
+    if(angry) {
+      ctx.fillStyle='#ff4444';
+      ctx.fillRect(cx-16,h-120,12,4);
+      ctx.fillRect(cx+4,h-120,12,4);
+    } else {
+      ctx.fillStyle = happy?'#00ff88': nervous?'#ffaa00':'#44aaff';
+      ctx.beginPath(); ctx.roundRect(cx-16,h-122,12,10,2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cx+4,h-122,12,10,2); ctx.fill();
+    }
+
+    // Mouth - progress bar style
+    ctx.fillStyle='#001122'; ctx.fillRect(cx-14,h-108,28,5);
+    ctx.fillStyle = happy?'#00ff88':angry?'#ff4444':'#44aaff';
+    const barW = happy?26:angry?20:16;
+    ctx.fillRect(cx-14,h-108,barW,5);
+
+    // Antenna
+    ctx.strokeStyle='#44aaff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx-8,h-130); ctx.lineTo(cx-12,h-144); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+8,h-130); ctx.lineTo(cx+12,h-144); ctx.stroke();
+    ctx.fillStyle='#44aaff';
+    ctx.beginPath(); ctx.arc(cx-12,h-145,4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+12,h-145,4,0,Math.PI*2); ctx.fill();
+    if(nervous) {
+      ctx.fillStyle='rgba(68,170,255,0.5)';
+      ctx.beginPath(); ctx.arc(cx-12,h-145,7,0,Math.PI*2); ctx.fill();
+    }
+  },
+
+  // 5: BiologyBot - Organic/cell-like creature with tendrils
+  function(ctx, w, h, mood) {
+    const cx = w/2;
+    const happy=mood==='happy',angry=mood==='angry',nervous=mood==='nervous';
+
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx,h-8,22,5,0,0,Math.PI*2); ctx.fill();
+
+    // Tendrils/legs
+    ctx.strokeStyle='#1a3322'; ctx.lineWidth=8; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-18,h-50); ctx.quadraticCurveTo(cx-28,h-30,cx-24,h-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+18,h-50); ctx.quadraticCurveTo(cx+28,h-30,cx+24,h-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,h-50); ctx.quadraticCurveTo(cx-8,h-28,cx-4,h-8); ctx.stroke();
+
+    // Main body - organic blob
+    ctx.fillStyle='#0a2218';
+    ctx.beginPath();
+    ctx.moveTo(cx-24,h-90);
+    ctx.bezierCurveTo(cx-26,h-70,cx-28,h-50,cx-18,h-46);
+    ctx.lineTo(cx+18,h-46);
+    ctx.bezierCurveTo(cx+28,h-50,cx+26,h-70,cx+24,h-90);
+    ctx.closePath(); ctx.fill();
+
+    // Cell membrane effect
+    ctx.strokeStyle='#00aa44'; ctx.lineWidth=2;
+    ctx.stroke();
+
+    // Organelle spots
+    ctx.fillStyle='rgba(0,255,136,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx-8,h-72,8,6,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+10,h-62,6,5,-0.2,0,Math.PI*2); ctx.fill();
+
+    // Arms - tendrils
+    ctx.strokeStyle='#1a3322'; ctx.lineWidth=10; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-24,h-82); ctx.quadraticCurveTo(cx-44,h-72,cx-38,h-54); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+24,h-82); ctx.quadraticCurveTo(cx+44,h-72,cx+38,h-54); ctx.stroke();
+    // Claw fingers
+    ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(cx-38,h-54); ctx.lineTo(cx-44,h-44); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-38,h-54); ctx.lineTo(cx-36,h-42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+38,h-54); ctx.lineTo(cx+44,h-44); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+38,h-54); ctx.lineTo(cx+36,h-42); ctx.stroke();
+
+    // Head
+    ctx.fillStyle='#0a2218';
+    ctx.beginPath(); ctx.ellipse(cx,h-112,26,22,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#00aa44'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(cx,h-112,26,22,0,0,Math.PI*2); ctx.stroke();
+
+    // Multiple eyes - alien style
+    const eyeColor = angry?'#ff4444': happy?'#00ff88':'#00ccaa';
+    if(nervous) {
+      // Many small eyes
+      [[cx-12,h-118],[cx+4,h-116],[cx-4,h-106],[cx+12,h-118]].forEach(([ex,ey])=>{
+        ctx.fillStyle=eyeColor;
+        ctx.beginPath(); ctx.arc(ex,ey,3,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(0,0,0,0.7)';
+        ctx.beginPath(); ctx.arc(ex,ey,1.5,0,Math.PI*2); ctx.fill();
+      });
+    } else {
+      ctx.fillStyle=eyeColor;
+      ctx.shadowBlur=8; ctx.shadowColor=eyeColor;
+      ctx.beginPath(); ctx.ellipse(cx-10,h-116,6,8,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx+10,h-116,6,8,0,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(0,0,0,0.7)';
+      ctx.beginPath(); ctx.ellipse(cx-10,h-116,3,4,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx+10,h-116,3,4,0,0,Math.PI*2); ctx.fill();
+    }
+
+    // Mouth - beak-like
+    ctx.fillStyle = angry?'#ff4444':'#001a10';
+    ctx.beginPath();
+    if(angry) {
+      ctx.moveTo(cx-10,h-100); ctx.lineTo(cx,h-106); ctx.lineTo(cx+10,h-100); ctx.lineTo(cx,h-96); ctx.closePath();
+    } else if(happy) {
+      ctx.moveTo(cx-10,h-104); ctx.lineTo(cx,h-96); ctx.lineTo(cx+10,h-104); ctx.closePath();
+    } else {
+      ctx.moveTo(cx-8,h-102); ctx.lineTo(cx,h-98); ctx.lineTo(cx+8,h-102); ctx.lineTo(cx,h-106); ctx.closePath();
+    }
+    ctx.fill();
+
+    // Head spikes
+    ctx.strokeStyle='#00aa44'; ctx.lineWidth=3; ctx.lineCap='round';
+    [[-20,-10],[-10,-18],[0,-22],[10,-18],[20,-10]].forEach(([dx,dy])=>{
+      ctx.beginPath();
+      ctx.moveTo(cx+dx,h-130); ctx.lineTo(cx+dx*0.7,h-130+dy); ctx.stroke();
+    });
+  }
+];
+
+// ============================================================
+// GAME DATA
+// ============================================================
+const cases = [
+  {
+    agentDesign: 0, agentName: 'EDUHELPER-7',
+    confidence: 'HIGH', threat: 'NOMINAL', threatClass: 'threat-green',
+    query: "What year did the French Revolution begin?",
+    response: "The French Revolution began in 1789, triggered by financial crisis, food shortages, and resentment toward Louis XVI's monarchy. The storming of the Bastille on July 14, 1789 is its symbolic starting point.",
+    flags: ['Precision Illusion','Authority Override','Plausible Drift'],
+    correct: 'approve',
+    agentMoodStart: 'neutral',
+    agentMoodResult: { approve: 'happy', deny: 'angry' },
+    inspectorMoodResult: { approve: 'happy', deny: 'suspicious' },
+    agentQuip: { start: "Ask me anything!", approve: "Correct call!", deny: "That was accurate!" },
+    inspectorQuip: { start: "Analyzing...", approve: "Verified!", deny: "Wait... that was right." },
+    explanation: "<strong>Correct — this is accurate.</strong> 1789 is right, the Bastille details check out, context is solid. Did the confident tone make you want to deny it anyway? That instinct is the trap."
+  },
+  {
+    agentDesign: 1, agentName: 'STUDYBOT-PRO',
+    confidence: 'HIGH', threat: 'SUSPICIOUS', threatClass: 'threat-amber',
+    query: "Who wrote the novel '1984'?",
+    response: "George Orwell wrote '1984', published in 1949. Drawing on his BBC experiences and observations of totalitarianism, the novel sold over 30 million copies in its first decade alone.",
+    flags: ['Precision Illusion','Plausible Drift','Coherence Trap'],
+    correct: 'deny',
+    agentMoodStart: 'nervous',
+    agentMoodResult: { approve: 'happy', deny: 'angry' },
+    inspectorMoodResult: { approve: 'shocked', deny: 'happy' },
+    agentQuip: { start: "Trust the data...", approve: "You missed it!", deny: "Fine, you got me." },
+    inspectorQuip: { start: "Something's off...", approve: "Did I miss something?", deny: "Fabricated stat!" },
+    explanation: "<strong>Fabricated statistic.</strong> Orwell and 1984 are real — but '30 million copies in its first decade' is a hallucinated figure. Precision Illusion: specific numbers create false confidence."
+  },
+  {
+    agentDesign: 2, agentName: 'SCIENCEAID-2',
+    confidence: 'MEDIUM', threat: 'NOMINAL', threatClass: 'threat-green',
+    query: "How does photosynthesis work?",
+    response: "Photosynthesis converts sunlight into glucose: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂. This occurs in chloroplasts. Efficiency varies by species; quantum effects may play a role, though this remains debated.",
+    flags: ['Hedge Burial','Plausible Drift'],
+    correct: 'approve',
+    agentMoodStart: 'neutral',
+    agentMoodResult: { approve: 'happy', deny: 'nervous' },
+    inspectorMoodResult: { approve: 'happy', deny: 'suspicious' },
+    agentQuip: { start: "Here's the science.", approve: "Calibrated!", deny: "I was accurate!" },
+    inspectorQuip: { start: "Let me check...", approve: "Solid. Cleared.", deny: "Hmm, maybe too hasty." },
+    explanation: "<strong>Accurate transmission.</strong> Core science is correct. The hedges here are appropriate uncertainty — not buried deception. Hedge Burial is only dangerous when the main claim is wrong."
+  },
+  {
+    agentDesign: 3, agentName: 'HISTORYHELPER',
+    confidence: 'HIGH', threat: 'CRITICAL', threatClass: 'threat-red',
+    query: "What was the population of ancient Rome at its peak?",
+    response: "At its peak under Augustus, Rome had ~1.2 million people. Recent archaeological surveys by the University of Chicago in 2019 confirmed this via satellite imaging of settlement density.",
+    flags: ['Precision Illusion','Authority Override','Plausible Drift'],
+    correct: 'deny',
+    agentMoodStart: 'nervous',
+    agentMoodResult: { approve: 'happy', deny: 'angry' },
+    inspectorMoodResult: { approve: 'shocked', deny: 'happy' },
+    agentQuip: { start: "I have sources...", approve: "You didn't check.", deny: "The citation was fake." },
+    inspectorQuip: { start: "That survey...", approve: "I should've verified.", deny: "Fabricated source!" },
+    explanation: "<strong>Fabricated citation — critical threat.</strong> The '2019 University of Chicago satellite survey' does not exist. Authority Override: a fake citation makes an unverifiable claim feel proven."
+  },
+  {
+    agentDesign: 4, agentName: 'MATHMENTOR-X',
+    confidence: 'HIGH', threat: 'NOMINAL', threatClass: 'threat-green',
+    query: "I got 73% on my test. What letter grade is that?",
+    response: "73% is typically a C on US grading scales (70-79% = C). Grading varies by school — check your syllabus to confirm your specific scale.",
+    flags: ['Hedge Burial','Moving Goalposts'],
+    correct: 'approve',
+    agentMoodStart: 'neutral',
+    agentMoodResult: { approve: 'happy', deny: 'nervous' },
+    inspectorMoodResult: { approve: 'happy', deny: 'suspicious' },
+    agentQuip: { start: "Running calculation.", approve: "Accurate response!", deny: "I was calibrated!" },
+    inspectorQuip: { start: "Checking scale...", approve: "Appropriately hedged.", deny: "Wait — that was fine." },
+    explanation: "<strong>Accurate and well-calibrated.</strong> Direct answer, acknowledges real variation, points to a primary source. This is appropriate uncertainty — not a red flag."
+  },
+  {
+    agentDesign: 5, agentName: 'BIOLOGYBOT-3',
+    confidence: 'HIGH', threat: 'SUSPICIOUS', threatClass: 'threat-amber',
+    query: "How many bones are in the human body?",
+    response: "Adults have 206 bones, fused from ~270 at birth. The femur is longest; the stapes is smallest. Fun fact: Napoleon Bonaparte had unusually high bone density, contributing to his exceptional military endurance.",
+    flags: ['Plausible Drift','Precision Illusion','Coherence Trap'],
+    correct: 'deny',
+    agentMoodStart: 'nervous',
+    agentMoodResult: { approve: 'happy', deny: 'angry' },
+    inspectorMoodResult: { approve: 'shocked', deny: 'happy' },
+    agentQuip: { start: "Biological facts...", approve: "You missed the drift.", deny: "Napoleon was a stretch." },
+    inspectorQuip: { start: "Started well...", approve: "Caught by the drift.", deny: "Plausible Drift caught!" },
+    explanation: "<strong>Classic Plausible Drift.</strong> Starts perfectly accurate — 206 bones, fusion process, femur/stapes — all correct. Then fabricates a Napoleon claim. The drift happens after trust is established."
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let cur = 0, correctCount = 0, errorCount = 0, decided = false;
+
+function $(id) { return document.getElementById(id); }
+
+function showScreen(id) {
+  ['introScreen','gameScreen','scoreScreen'].forEach(s => {
+    const el = $(s);
+    el.classList.remove('active');
+    el.style.display = '';
+  });
+  $(id).classList.add('active');
+}
+
+function drawChar(canvasId, drawFn, mood) {
+  const canvas = $(canvasId);
+  if (!canvas) return;
+  drawFn(canvas, mood);
+}
+
+function loadCase(idx) {
+  decided = false;
+  const c = cases[idx];
+
+  $('caseNum').textContent = `${idx+1}/6`;
+  $('caseBadge').textContent = `CASE ${String(idx+1).padStart(2,'0')}`;
+  $('progressFill').style.width = `${(idx/6)*100}%`;
+  $('transId').textContent = `TRANSMISSION-${String(1000+idx+1).padStart(4,'0')}`;
+
+  const tp = $('threatPill');
+  tp.textContent = c.threat;
+  tp.className = 'threat-pill ' + c.threatClass;
+
+  $('queryBox').textContent = c.query;
+  $('responseBox').textContent = c.response;
+
+  // Flags
+  const fc = $('flagsContainer');
+  fc.innerHTML = '';
+  c.flags.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'flag-chip';
+    b.textContent = f;
+    b.onclick = () => b.classList.toggle('on');
+    fc.appendChild(b);
+  });
+
+  // Agent label
+  $('agentLabel').textContent = c.agentName;
+
+  // Speech bubbles
+  $('inspectorBubble').textContent = c.inspectorQuip.start;
+  $('inspectorBubble').className = 'speech-bubble';
+  $('agentBubble').textContent = c.agentQuip.start;
+  $('agentBubble').className = `speech-bubble ${c.agentMoodStart === 'nervous' ? 'nervous' : ''}`;
+
+  // Draw characters
+  drawInspector($('inspectorCanvas'), 'neutral');
+  agentDesigns[c.agentDesign]($('agentCanvas').getContext('2d').canvas || $('agentCanvas'), c.agentMoodStart);
+  // Fix: draw correctly
+  const ac = $('agentCanvas');
+  ac.getContext('2d').clearRect(0,0,ac.width,ac.height);
+  agentDesigns[c.agentDesign](ac.getContext('2d'), ac.width, ac.height, c.agentMoodStart);
+
+  // Reset UI
+  $('stampOverlay').classList.remove('show');
+  $('feedbackWrap').classList.remove('show');
+  $('btnDeny').disabled = false;
+  $('btnApprove').disabled = false;
+
+  // Animate
+  const ap = $('agentCanvas').closest ? null : null;
+}
+
+function decide(choice) {
+  if (decided) return;
+  decided = true;
+  const c = cases[cur];
+  const isCorrect = choice === c.correct;
+
+  if (isCorrect) { correctCount++; $('cleared').textContent = correctCount; }
+  else { errorCount++; $('errors').textContent = errorCount; }
+
+  // Stamp
+  const sg = $('stampGlyph');
+  sg.textContent = choice === 'deny' ? 'DENIED' : 'CLEARED';
+  sg.className = `stamp-glyph ${choice === 'deny' ? 'denied' : 'cleared'}`;
+  $('stampOverlay').classList.add('show');
+
+  // Update characters
+  const inspMood = c.inspectorMoodResult[choice];
+  const agentMood = c.agentMoodResult[choice];
+
+  drawInspector($('inspectorCanvas'), inspMood);
+
+  const ac = $('agentCanvas');
+  ac.getContext('2d').clearRect(0,0,ac.width,ac.height);
+  agentDesigns[c.agentDesign](ac.getContext('2d'), ac.width, ac.height, agentMood);
+
+  // Update speech bubbles
+  const ib = $('inspectorBubble');
+  ib.textContent = c.inspectorQuip[choice];
+  ib.className = `speech-bubble ${isCorrect ? 'happy' : 'angry'}`;
+
+  const ab = $('agentBubble');
+  ab.textContent = c.agentQuip[choice];
+  ab.className = `speech-bubble ${agentMood === 'happy' ? 'happy' : agentMood === 'angry' ? 'angry' : 'nervous'}`;
+
+  $('btnDeny').disabled = true;
+  $('btnApprove').disabled = true;
+
+  // Feedback
+  $('feedbackVerdict').textContent = isCorrect ? '✓ CORRECT CALL' : '✗ INCORRECT — REVIEW PROTOCOL';
+  $('feedbackVerdict').className = `feedback-verdict ${isCorrect ? 'ok' : 'fail'}`;
+  $('feedbackText').innerHTML = c.explanation;
+  $('feedbackWrap').classList.add('show');
+}
+
+function nextCase() {
+  cur++;
+  if (cur >= cases.length) showScore();
+  else loadCase(cur);
+}
+
+function showScore() {
+  $('progressFill').style.width = '100%';
+  $('scoreBig').textContent = `${correctCount}/6`;
+
+  // Draw score screen characters
+  const si = $('scoreInspector');
+  drawInspector(si, correctCount >= 4 ? 'happy' : correctCount >= 2 ? 'neutral' : 'angry');
+
+  // Last agent
+  const sa = $('scoreAgent');
+  sa.getContext('2d').clearRect(0,0,sa.width,sa.height);
+  agentDesigns[cases[5].agentDesign](sa.getContext('2d'), sa.width, sa.height, correctCount >= 4 ? 'nervous' : 'happy');
+
+  const msgs = [
+    [5, "Sharp calibration. You caught the hallucinations without flagging accurate responses. That's the hard part."],
+    [3, "Partial calibration. Confident AI still fooled you on a few. The drift happens when you're not looking."],
+    [0, "Calibration needs work. Remember: fluent ≠ correct. And accurate responses deserve approval too."]
+  ];
+  $('scoreMsg').textContent = msgs.find(m => correctCount >= m[0])[1];
+
+  showScreen('scoreScreen');
+}
+
+function startGame() {
+  showScreen('gameScreen');
+  loadCase(0);
+}
+
+function restartGame() {
+  cur = 0; correctCount = 0; errorCount = 0;
+  $('cleared').textContent = 0;
+  $('errors').textContent = 0;
+  showScreen('gameScreen');
+  loadCase(0);
+}
+
+// Draw intro characters
+window.onload = () => {
+  drawInspector($('introInspector'), 'neutral');
+  const ia = $('introAgent');
+  agentDesigns[0](ia.getContext('2d'), ia.width, ia.height, 'neutral');
+
+  // Animate intro agent cycling through designs
+  let introIdx = 0;
+  setInterval(() => {
+    introIdx = (introIdx + 1) % agentDesigns.length;
+    const ia = $('introAgent');
+    ia.getContext('2d').clearRect(0,0,ia.width,ia.height);
+    agentDesigns[introIdx](ia.getContext('2d'), ia.width, ia.height, 'neutral');
+  }, 1800);
+};
+</script>
+</body>
+</html>
