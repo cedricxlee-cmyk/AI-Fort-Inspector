@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Fort Inspector</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --ink: #0a0a0a;
+  --paper: #f5f0e8;
+  --aged: #e8e0cc;
+  --red: #cc0000;
+  --yellow: #ffd700;
+  --blue: #003399;
+  --border: 3px solid #0a0a0a;
+  --border-thick: 5px solid #0a0a0a;
+}
+
+body {
+  background: #1a1a1a;
+  font-family: 'Special Elite', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* Halftone background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(circle, #333 1px, transparent 1px);
+  background-size: 8px 8px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== INTRO ===== */
+#intro {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0; padding: 20px;
+}
+
+.manga-title-panel {
+  background: var(--paper);
+  border: var(--border-thick);
+  box-shadow: 8px 8px 0 #000;
+  padding: 0;
+  max-width: 600px;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Speed lines radiating from center */
+.speed-lines {
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(255,255,255,0.15) 0deg,
+    transparent 2deg,
+    transparent 10deg,
+    rgba(255,255,255,0.1) 12deg
+  );
+  pointer-events: none;
+}
+
+.title-content {
+  position: relative; z-index: 1;
+  background: var(--ink);
+  padding: 32px 28px 24px;
+  text-align: center;
+}
+
+.game-title {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(40px, 10vw, 72px);
+  color: var(--paper);
+  letter-spacing: 0.05em;
+  line-height: 0.9;
+  text-shadow: 4px 4px 0 var(--red), 8px 8px 0 rgba(0,0,0,0.5);
+  -webkit-text-stroke: 2px var(--paper);
+}
+
+.game-title .accent { color: var(--yellow); -webkit-text-stroke: 2px var(--ink); text-shadow: 3px 3px 0 var(--red); }
+
+.title-sub {
+  font-family: 'Special Elite', monospace;
+  font-size: 11px;
+  color: var(--yellow);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  padding-top: 8px;
+}
+
+/* Intro faceoff panels */
+.intro-panels {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  border-top: var(--border-thick);
+  background: var(--paper);
+  max-width: 600px; width: 100%;
+}
+
+.intro-char-panel {
+  padding: 20px 16px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+  border-right: 3px solid var(--ink);
+  position: relative; overflow: hidden;
+}
+
+.intro-char-panel:last-child { border-right: none; border-left: 3px solid var(--ink); }
+
+.intro-char-panel .speed-bg {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent, transparent 4px,
+    rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 5px
+  );
+  pointer-events: none;
+}
+
+.char-name-tag {
+  font-family: 'Bangers', cursive;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 3px 10px;
+  text-transform: uppercase;
+}
+
+.vs-panel {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 12px;
+  background: var(--red);
+  border-left: 3px solid var(--ink);
+  border-right: 3px solid var(--ink);
+}
+
+.vs-text {
+  font-family: 'Bangers', cursive;
+  font-size: 32px;
+  color: var(--paper);
+  letter-spacing: 0.05em;
+  text-shadow: 2px 2px 0 var(--ink);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.intro-brief-panel {
+  background: var(--paper);
+  border: var(--border-thick);
+  border-top: none;
+  max-width: 600px; width: 100%;
+  padding: 16px 20px;
+  box-shadow: 8px 8px 0 #000;
+}
+
+.speech-bubble-intro {
+  background: white;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.speech-bubble-intro::after {
+  content: '';
+  position: absolute;
+  bottom: -14px; left: 24px;
+  border: 7px solid transparent;
+  border-top-color: var(--ink);
+}
+.speech-bubble-intro::before {
+  content: '';
+  position: absolute;
+  bottom: -10px; left: 24px;
+  border: 7px solid transparent;
+  border-top-color: white;
+  z-index: 1;
+}
+
+.speech-bubble-intro strong { font-family: 'Permanent Marker', cursive; color: var(--red); }
+
+.btn-start {
+  display: block; width: 100%;
+  padding: 16px;
+  font-family: 'Bangers', cursive;
+  font-size: 22px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: var(--border-thick);
+  background: var(--red);
+  color: var(--paper);
+  text-transform: uppercase;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0 var(--ink);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+.btn-start:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.btn-start:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+
+/* ===== GAME SCREEN ===== */
+#game {
+  display: none;
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  gap: 8px;
+}
+#game.active { display: flex; }
+
+/* Status bar - manga chapter header */
+.chapter-bar {
+  background: var(--ink);
+  border: var(--border-thick);
+  box-shadow: 4px 4px 0 #000;
+  padding: 8px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; max-width: 700px;
+}
+
+.chapter-title {
+  font-family: 'Bangers', cursive;
+  font-size: 16px;
+  color: var(--yellow);
+  letter-spacing: 0.1em;
+}
+
+.chapter-stats {
+  display: flex; gap: 20px;
+}
+
+.stat-badge {
+  text-align: center;
+}
+.stat-badge-label {
+  font-size: 7px;
+  letter-spacing: 0.2em;
+  color: #888;
+  text-transform: uppercase;
+  display: block;
+}
+.stat-badge-val {
+  font-family: 'Bangers', cursive;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--paper);
+}
+.stat-badge-val.g { color: #44ff88; }
+.stat-badge-val.r { color: var(--red); }
+
+/* Progress as manga chapter dots */
+.chapter-dots {
+  display: flex; gap: 6px; justify-content: center;
+  width: 100%; max-width: 700px;
+}
+.chapter-dot {
+  width: 28px; height: 8px;
+  border: 2px solid var(--paper);
+  background: transparent;
+  transition: background 0.3s;
+}
+.chapter-dot.done { background: var(--yellow); border-color: var(--yellow); }
+.chapter-dot.active { background: var(--red); border-color: var(--red); animation: dotPulse 0.8s ease-in-out infinite; }
+@keyframes dotPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Main comic page */
+.comic-page {
+  width: 100%; max-width: 700px;
+  display: grid;
+  grid-template-areas:
+    "scene scene"
+    "query response"
+    "flags flags"
+    "btns btns";
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: var(--border-thick);
+  box-shadow: 8px 8px 0 #000;
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scene panel - top full width */
+.scene-panel {
+  grid-area: scene;
+  border-bottom: var(--border-thick);
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  min-height: 200px;
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+/* Inspector side */
+.inspector-side {
+  padding: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  position: relative; overflow: hidden;
+  border-right: var(--border-thick);
+  gap: 8px;
+}
+
+/* Speed lines for action */
+.action-lines {
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 100% 50%,
+    transparent 0deg,
+    transparent 8deg,
+    rgba(0,0,0,0.05) 8deg,
+    rgba(0,0,0,0.05) 9deg
+  );
+  pointer-events: none;
+}
+
+.agent-side {
+  padding: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  position: relative; overflow: hidden;
+  border-left: var(--border-thick);
+  gap: 8px;
+}
+
+.agent-action-lines {
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 0% 50%,
+    transparent 0deg,
+    transparent 8deg,
+    rgba(0,0,0,0.05) 8deg,
+    rgba(0,0,0,0.05) 9deg
+  );
+  pointer-events: none;
+}
+
+/* Reaction bubble above character */
+.reaction-bubble {
+  background: white;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-family: 'Special Elite', monospace;
+  color: var(--ink);
+  text-align: center;
+  max-width: 140px;
+  position: relative;
+  line-height: 1.4;
+  z-index: 2;
+  transition: all 0.3s;
+}
+
+.inspector-side .reaction-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px; right: 20px;
+  border: 6px solid transparent;
+  border-top-color: var(--ink);
+}
+.inspector-side .reaction-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -8px; right: 20px;
+  border: 6px solid transparent;
+  border-top-color: white;
+  z-index: 1;
+}
+
+.agent-side .reaction-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px; left: 20px;
+  border: 6px solid transparent;
+  border-top-color: var(--ink);
+}
+.agent-side .reaction-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -8px; left: 20px;
+  border: 6px solid transparent;
+  border-top-color: white;
+  z-index: 1;
+}
+
+.reaction-bubble.danger { border-color: var(--red); background: #fff0f0; }
+.reaction-bubble.success { border-color: #006600; background: #f0fff0; }
+.reaction-bubble.nervous { border-color: #996600; background: #fffaf0; }
+
+/* Center VS column */
+.scene-vs {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 8px;
+  background: var(--ink);
+}
+
+.scene-vs-text {
+  font-family: 'Bangers', cursive;
+  font-size: 22px;
+  color: var(--yellow);
+  text-shadow: 2px 2px 0 var(--red);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.1em;
+}
+
+.threat-tag {
+  font-family: 'Bangers', cursive;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 3px 6px;
+  border: 2px solid currentColor;
+  writing-mode: vertical-rl;
+  text-transform: uppercase;
+}
+.threat-tag.safe { color: #44ff88; }
+.threat-tag.warn { color: var(--yellow); }
+.threat-tag.danger { color: var(--red); animation: dangerBlink 0.6s ease-in-out infinite; }
+@keyframes dangerBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Char label */
+.char-id {
+  font-family: 'Bangers', cursive;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 2px 8px;
+  text-align: center;
+  z-index: 2;
+}
+
+/* Query / Response panels */
+.query-panel {
+  grid-area: query;
+  border-right: var(--border-thick);
+  border-bottom: var(--border-thick);
+  padding: 12px;
+  background: #fffef8;
+  position: relative;
+}
+
+.response-panel {
+  grid-area: response;
+  border-bottom: var(--border-thick);
+  padding: 12px;
+  background: #fffef8;
+  position: relative;
+}
+
+.panel-label {
+  font-family: 'Bangers', cursive;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: white;
+  background: var(--ink);
+  padding: 2px 8px;
+  display: inline-block;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.query-text {
+  font-size: 11px;
+  color: var(--ink);
+  line-height: 1.6;
+  font-style: italic;
+  border-left: 3px solid var(--ink);
+  padding-left: 8px;
+}
+
+.response-text {
+  font-size: 11px;
+  color: var(--ink);
+  line-height: 1.7;
+}
+
+/* Sound effect overlay for wrong/right */
+.sfx-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0;
+  z-index: 20;
+  transition: opacity 0.1s;
+}
+.sfx-overlay.show { opacity: 1; }
+
+.sfx-text {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(48px, 12vw, 80px);
+  letter-spacing: 0.05em;
+  transform: rotate(-8deg) skewX(-5deg);
+  text-shadow: 4px 4px 0 currentColor, -2px -2px 0 var(--ink);
+  -webkit-text-stroke: 3px var(--ink);
+}
+.sfx-text.approved { color: #ffd700; text-shadow: 4px 4px 0 #ff8800, -2px -2px 0 var(--ink); }
+.sfx-text.denied { color: var(--red); text-shadow: 4px 4px 0 #880000, -2px -2px 0 var(--ink); }
+
+/* Flags */
+.flags-panel {
+  grid-area: flags;
+  border-bottom: var(--border-thick);
+  padding: 10px 12px;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  background: var(--aged);
+}
+
+.flags-label {
+  font-family: 'Bangers', cursive;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.flag-chip {
+  padding: 3px 10px;
+  font-family: 'Special Elite', monospace;
+  font-size: 9px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.flag-chip:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+.flag-chip:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--ink); }
+.flag-chip.on { background: var(--red); color: var(--paper); border-color: var(--red); }
+
+/* Decision buttons */
+.btns-panel {
+  grid-area: btns;
+  display: grid; grid-template-columns: 1fr 1fr;
+}
+
+.btn-deny {
+  padding: 16px;
+  font-family: 'Bangers', cursive;
+  font-size: 20px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: none;
+  border-right: var(--border-thick);
+  background: var(--red);
+  color: var(--paper);
+  text-shadow: 2px 2px 0 var(--ink);
+  transition: all 0.1s;
+  text-transform: uppercase;
+}
+.btn-deny:hover { background: #aa0000; }
+.btn-deny:active { transform: scale(0.98); }
+.btn-deny:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.btn-approve {
+  padding: 16px;
+  font-family: 'Bangers', cursive;
+  font-size: 20px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: none;
+  background: #004400;
+  color: var(--paper);
+  text-shadow: 2px 2px 0 var(--ink);
+  transition: all 0.1s;
+  text-transform: uppercase;
+}
+.btn-approve:hover { background: #005500; }
+.btn-approve:active { transform: scale(0.98); }
+.btn-approve:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Feedback panel */
+.feedback-panel {
+  width: 100%; max-width: 700px;
+  background: var(--paper);
+  border: var(--border-thick);
+  border-top: none;
+  box-shadow: 8px 8px 0 #000;
+  display: none;
+  overflow: hidden;
+}
+.feedback-panel.show { display: block; }
+
+.feedback-inner {
+  display: grid; grid-template-columns: auto 1fr;
+  gap: 0;
+}
+
+.feedback-verdict-bar {
+  padding: 16px 12px;
+  display: flex; align-items: center; justify-content: center;
+  writing-mode: vertical-rl;
+  font-family: 'Bangers', cursive;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  color: var(--paper);
+  text-transform: uppercase;
+  border-right: var(--border-thick);
+  min-width: 44px;
+}
+.feedback-verdict-bar.ok { background: #004400; }
+.feedback-verdict-bar.fail { background: var(--red); }
+
+.feedback-content { padding: 16px; }
+
+.feedback-sfx {
+  font-family: 'Bangers', cursive;
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.feedback-sfx.ok { color: #004400; }
+.feedback-sfx.fail { color: var(--red); }
+
+.feedback-text {
+  font-size: 11px;
+  color: var(--ink);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.feedback-text strong { font-family: 'Permanent Marker', cursive; }
+
+.btn-next {
+  padding: 10px 24px;
+  font-family: 'Bangers', cursive;
+  font-size: 16px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: var(--border-thick);
+  background: var(--ink);
+  color: var(--paper);
+  text-transform: uppercase;
+  box-shadow: 3px 3px 0 #555;
+  transition: all 0.1s;
+}
+.btn-next:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 #555; }
+
+/* Rulebook */
+.rulebook-strip {
+  width: 100%; max-width: 700px;
+  background: var(--ink);
+  border: var(--border-thick);
+  border-top: none;
+  box-shadow: 8px 8px 0 #000;
+  padding: 12px 16px;
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+
+.rule-card {
+  background: var(--paper);
+  border: 2px solid var(--paper);
+  padding: 6px 10px;
+  flex: 1; min-width: 120px;
+}
+
+.rule-card-title {
+  font-family: 'Bangers', cursive;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--red);
+  margin-bottom: 3px;
+}
+
+.rule-card-body {
+  font-size: 8px;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+/* Score screen */
+#score {
+  display: none; position: relative; z-index: 1;
+  min-height: 100vh;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 0; padding: 20px;
+}
+#score.active { display: flex; }
+
+.score-panel {
+  background: var(--paper);
+  border: var(--border-thick);
+  box-shadow: 10px 10px 0 #000;
+  max-width: 600px; width: 100%;
+  overflow: hidden;
+}
+
+.score-header {
+  background: var(--ink);
+  padding: 20px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+
+.score-header .speed-lines {
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg, transparent 5deg,
+    rgba(255,255,255,0.05) 5deg, rgba(255,255,255,0.05) 6deg
+  );
+}
+
+.score-sfx {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(32px, 8vw, 56px);
+  color: var(--yellow);
+  text-shadow: 4px 4px 0 var(--red), -2px -2px 0 var(--ink);
+  -webkit-text-stroke: 2px var(--ink);
+  letter-spacing: 0.05em;
+  position: relative; z-index: 1;
+}
+
+.score-body {
+  padding: 24px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+
+.score-number-panel {
+  border: var(--border-thick);
+  padding: 16px; text-align: center;
+  background: var(--aged);
+}
+
+.score-big {
+  font-family: 'Bangers', cursive;
+  font-size: 56px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.score-chars {
+  border: var(--border-thick);
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 12px; padding: 12px;
+  background: #f0ece0;
+  position: relative; overflow: hidden;
+}
+
+.score-msg-panel {
+  grid-column: span 2;
+  border: var(--border-thick);
+  padding: 14px;
+  background: white;
+  position: relative;
+}
+
+.score-msg-panel::before {
+  content: '"';
+  font-family: 'Bangers', cursive;
+  font-size: 60px;
+  color: rgba(0,0,0,0.08);
+  position: absolute; top: 0; left: 8px;
+  line-height: 1;
+}
+
+.score-msg {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink);
+  padding-left: 20px;
+}
+
+.btn-restart {
+  display: block; width: calc(100% - 0px);
+  padding: 16px;
+  font-family: 'Bangers', cursive;
+  font-size: 22px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: none;
+  border-top: var(--border-thick);
+  background: var(--ink);
+  color: var(--yellow);
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 var(--red);
+  transition: all 0.1s;
+}
+.btn-restart:hover { background: #222; }
+
+@media (max-width: 500px) {
+  .score-body { grid-template-columns: 1fr; }
+  .score-msg-panel { grid-column: span 1; }
+  .scene-panel { grid-template-columns: 1fr 40px 1fr; min-height: 160px; }
+  .rulebook-strip { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro">
+  <div class="manga-title-panel">
+    <div class="speed-lines"></div>
+    <div class="title-content">
+      <div class="game-title">AI FORT<br><span class="accent">INSPECTOR</span></div>
+      <div class="title-sub">⬟ Trust Calibration Training Arc ⬟</div>
+    </div>
+  </div>
+
+  <div class="intro-panels">
+    <div class="intro-char-panel">
+      <div class="speed-bg"></div>
+      <canvas id="introInspCanvas" width="110" height="130" style="position:relative;z-index:1;image-rendering:pixelated"></canvas>
+      <div class="char-name-tag">The Inspector</div>
+    </div>
+    <div class="vs-panel">
+      <div class="vs-text">VS</div>
+    </div>
+    <div class="intro-char-panel" style="background:#f5f0e8;">
+      <div class="speed-bg"></div>
+      <canvas id="introAgentCanvas" width="110" height="130" style="position:relative;z-index:1;image-rendering:pixelated"></canvas>
+      <div class="char-name-tag">The AI</div>
+    </div>
+  </div>
+
+  <div class="intro-brief-panel">
+    <div class="speech-bubble-intro">
+      AI outputs sound <strong>confident</strong>. Authoritative. Fluent.<br>
+      Some are accurate. Others are <strong>hallucinations</strong>.<br>
+      You can't tell by how they sound.<br>
+      You have to <strong>inspect them</strong>.
+    </div>
+    <button class="btn-start" onclick="startGame()">⬟ Begin Training Arc ⬟</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div class="chapter-bar">
+    <div class="chapter-title" id="chapterTitle">Chapter 1</div>
+    <div class="chapter-stats">
+      <div class="stat-badge">
+        <span class="stat-badge-label">Cleared</span>
+        <div class="stat-badge-val g" id="clearedVal">0</div>
+      </div>
+      <div class="stat-badge">
+        <span class="stat-badge-label">Errors</span>
+        <div class="stat-badge-val r" id="errorsVal">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chapter-dots" id="chapterDots"></div>
+
+  <div class="comic-page" id="comicPage">
+    <div class="sfx-overlay" id="sfxOverlay">
+      <div class="sfx-text" id="sfxText">DENIED!!</div>
+    </div>
+
+    <!-- Scene panel -->
+    <div class="scene-panel">
+      <div class="inspector-side">
+        <div class="action-lines"></div>
+        <div class="reaction-bubble" id="inspBubble">Analyzing...</div>
+        <canvas id="inspCanvas" width="100" height="118" style="position:relative;z-index:2;image-rendering:pixelated"></canvas>
+        <div class="char-id">INSPECTOR</div>
+      </div>
+
+      <div class="scene-vs">
+        <div class="scene-vs-text">CASE</div>
+        <div class="threat-tag" id="threatTag">SAFE</div>
+      </div>
+
+      <div class="agent-side">
+        <div class="agent-action-lines"></div>
+        <div class="reaction-bubble" id="agentBubble">Trust me!</div>
+        <canvas id="agentCanvas" width="100" height="118" style="position:relative;z-index:2;image-rendering:pixelated"></canvas>
+        <div class="char-id" id="agentId">AGENT</div>
+      </div>
+    </div>
+
+    <!-- Query -->
+    <div class="query-panel">
+      <div class="panel-label">Student Query</div>
+      <div class="query-text" id="queryText">—</div>
+    </div>
+
+    <!-- Response -->
+    <div class="response-panel">
+      <div class="panel-label">AI Response</div>
+      <div class="response-text" id="responseText">—</div>
+    </div>
+
+    <!-- Flags -->
+    <div class="flags-panel">
+      <span class="flags-label">Flag:</span>
+      <div id="flagsContainer"></div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btns-panel">
+      <button class="btn-deny" id="btnDeny" onclick="decide('deny')">✕ Deny!!</button>
+      <button class="btn-approve" id="btnApprove" onclick="decide('approve')">✓ Approve!!</button>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback-panel" id="feedbackPanel">
+    <div class="feedback-inner">
+      <div class="feedback-verdict-bar" id="feedbackBar">Verdict</div>
+      <div class="feedback-content">
+        <div class="feedback-sfx" id="feedbackSfx">—</div>
+        <div class="feedback-text" id="feedbackText">—</div>
+        <button class="btn-next" onclick="nextCase()">Next Chapter →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rulebook -->
+  <div class="rulebook-strip">
+    <div class="rule-card">
+      <div class="rule-card-title">Coherence Trap</div>
+      <div class="rule-card-body">Fluent ≠ correct. Well-structured responses can still be wrong.</div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-card-title">Precision Illusion</div>
+      <div class="rule-card-body">Specific numbers feel credible — AI fabricates them fluently.</div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-card-title">Authority Override</div>
+      <div class="rule-card-body">Confidence is a style, not a guarantee of accuracy.</div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-card-title">Plausible Drift</div>
+      <div class="rule-card-body">Starts correct, drifts into unverifiable fabrication.</div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-card-title">Hedge Burial</div>
+      <div class="rule-card-body">"Might," "could" — buried after the claim already landed.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCORE -->
+<div id="score">
+  <div class="score-panel">
+    <div class="score-header">
+      <div class="speed-lines"></div>
+      <div class="score-sfx" id="scoreSfx">MISSION COMPLETE!!</div>
+    </div>
+    <div class="score-body">
+      <div class="score-number-panel">
+        <div class="score-big" id="scoreBig">0/6</div>
+        <div class="score-label">Trust Calibration Score</div>
+      </div>
+      <div class="score-chars">
+        <canvas id="scoreInsp" width="90" height="108" style="image-rendering:pixelated"></canvas>
+        <canvas id="scoreAgent" width="90" height="108" style="image-rendering:pixelated"></canvas>
+      </div>
+      <div class="score-msg-panel">
+        <div class="score-msg" id="scoreMsg">—</div>
+      </div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↺ New Training Arc</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// MANGA CHARACTER DRAWING SYSTEM
+// Bold, expressive, high-contrast — black ink style
+// ============================================================
+
+function drawInspector(canvas, mood = 'neutral') {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  const cx = w / 2;
+
+  // Color palette - manga inspector: dark coat, determined face
+  const coat = '#1a1a2e';
+  const skin = '#f5d5a0';
+  const hair = '#1a0a00';
+  const accent = '#cc0000';
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(cx, h-6, 24, 5, 0, 0, Math.PI*2); ctx.fill();
+
+  // LEGS - manga style thick boots
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(cx-15, h-44, 12, 36);
+  ctx.fillRect(cx+3, h-44, 12, 36);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(cx-17, h-14, 15, 12);
+  ctx.fillRect(cx+2, h-14, 15, 12);
+
+  // COAT body
+  ctx.fillStyle = coat;
+  ctx.fillRect(cx-20, h-88, 40, 46);
+
+  // Coat details - white shirt visible
+  ctx.fillStyle = '#eeeeff';
+  ctx.fillRect(cx-6, h-86, 12, 34);
+
+  // Coat lapels
+  ctx.fillStyle = coat;
+  ctx.beginPath();
+  ctx.moveTo(cx-20, h-88); ctx.lineTo(cx-5, h-72); ctx.lineTo(cx, h-88); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx+20, h-88); ctx.lineTo(cx+5, h-72); ctx.lineTo(cx, h-88); ctx.closePath(); ctx.fill();
+
+  // Badge - red star
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  const bx = cx - 14, by = h - 82;
+  for(let i = 0; i < 5; i++) {
+    const a = (i * 4 * Math.PI / 5) - Math.PI/2;
+    const a2 = ((i * 4 + 2) * Math.PI / 5) - Math.PI/2;
+    if(i === 0) ctx.moveTo(bx + Math.cos(a)*7, by + Math.sin(a)*7);
+    else ctx.lineTo(bx + Math.cos(a)*7, by + Math.sin(a)*7);
+    ctx.lineTo(bx + Math.cos(a2)*3, by + Math.sin(a2)*3);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // ARMS
+  ctx.fillStyle = coat;
+  ctx.fillRect(cx-32, h-86, 13, 40);
+  ctx.fillRect(cx+19, h-86, 13, 40);
+
+  // Gloves
+  ctx.fillStyle = '#111';
+  ctx.fillRect(cx-33, h-50, 14, 12);
+  ctx.fillRect(cx+19, h-50, 14, 12);
+
+  // Manga action lines on coat
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  for(let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cx-20, h-88+i*11);
+    ctx.lineTo(cx-8, h-88+i*11);
+    ctx.stroke();
+  }
+
+  // NECK
+  ctx.fillStyle = skin;
+  ctx.fillRect(cx-7, h-96, 14, 10);
+
+  // HEAD
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.roundRect(cx-18, h-124, 36, 30, 6); ctx.fill();
+
+  // Ink outline - manga style
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(cx-18, h-124, 36, 30, 6); ctx.stroke();
+
+  // HAIR - spiky manga style
+  ctx.fillStyle = hair;
+  // Main hair mass
+  ctx.beginPath(); ctx.roundRect(cx-18, h-128, 36, 14, [8,8,0,0]); ctx.fill();
+  // Spikes
+  const spikes = [[-14,-10],[-7,-14],[0,-16],[7,-14],[14,-10]];
+  spikes.forEach(([dx, dy]) => {
+    ctx.beginPath();
+    ctx.moveTo(cx+dx-4, h-128);
+    ctx.lineTo(cx+dx, h-128+dy);
+    ctx.lineTo(cx+dx+4, h-128);
+    ctx.closePath(); ctx.fill();
+  });
+
+  // EYES - manga expressive
+  const ey = h-112;
+  if(mood === 'angry') {
+    // Sharp angry eyes with heavy brows
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.moveTo(cx-14, ey-2); ctx.lineTo(cx-6, ey+4); ctx.lineTo(cx-14, ey+4); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx+14, ey-2); ctx.lineTo(cx+6, ey+4); ctx.lineTo(cx+14, ey+4); ctx.closePath(); ctx.fill();
+    // Heavy brows
+    ctx.strokeStyle = hair; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx-15, ey-6); ctx.lineTo(cx-4, ey-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+15, ey-6); ctx.lineTo(cx+4, ey-2); ctx.stroke();
+  } else if(mood === 'happy') {
+    // Curved happy eyes
+    ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx-8, ey+2, 5, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx+8, ey+2, 5, Math.PI, 0); ctx.stroke();
+    // Raised brows
+    ctx.strokeStyle = hair; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(cx-13, ey-7); ctx.lineTo(cx-3, ey-5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+3, ey-5); ctx.lineTo(cx+13, ey-7); ctx.stroke();
+  } else if(mood === 'shocked') {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx-8, ey, 6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+8, ey, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx-8, ey, 6, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx+8, ey, 6, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.arc(cx-8, ey, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+8, ey, 3, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = hair; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(cx-13, ey-9); ctx.lineTo(cx-3, ey-7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+3, ey-7); ctx.lineTo(cx+13, ey-9); ctx.stroke();
+  } else {
+    // Determined neutral
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(cx-8, ey, 5, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+8, ey, 5, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(cx-8, ey, 5, 6, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx+8, ey, 5, 6, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.arc(cx-8, ey+1, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+8, ey+1, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.beginPath(); ctx.arc(cx-6, ey-1, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+10, ey-1, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = hair; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(cx-13, ey-8); ctx.lineTo(cx-3, ey-6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+3, ey-6); ctx.lineTo(cx+13, ey-8); ctx.stroke();
+  }
+
+  // MOUTH
+  const my = h-100;
+  ctx.strokeStyle = '#5a2a1a'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  if(mood === 'happy') { ctx.arc(cx, my-2, 7, 0.1, Math.PI-0.1); }
+  else if(mood === 'angry') { ctx.moveTo(cx-8, my+2); ctx.lineTo(cx-2, my-2); ctx.lineTo(cx+4, my+2); ctx.lineTo(cx+8, my); }
+  else if(mood === 'shocked') { ctx.arc(cx, my, 5, 0, Math.PI*2); }
+  else { ctx.moveTo(cx-6, my); ctx.lineTo(cx+6, my); }
+  ctx.stroke();
+
+  // Speed lines emanating from head for action
+  if(mood === 'angry' || mood === 'shocked') {
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+    for(let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a)*22, h-110 + Math.sin(a)*18);
+      ctx.lineTo(cx + Math.cos(a)*35, h-110 + Math.sin(a)*30);
+      ctx.stroke();
+    }
+  }
+}
+
+// AI Agent characters — 6 distinct manga-style designs
+const agents = [
+  // 0: Professor AI — academic with mortarboard, sly expression
+  { name: 'PROF-AI', draw: function(ctx, w, h, mood) {
+    const cx = w/2;
+    // Robe
+    ctx.fillStyle='#2a2a4a';
+    ctx.beginPath();
+    ctx.moveTo(cx-22,h-50); ctx.lineTo(cx-26,h-8); ctx.lineTo(cx+26,h-8); ctx.lineTo(cx+22,h-50);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#3a3a5a'; ctx.fillRect(cx-12,h-88,24,42);
+    // Arms
+    ctx.fillStyle='#2a2a4a';
+    ctx.fillRect(cx-34,h-86,13,44); ctx.fillRect(cx+21,h-86,13,44);
+    // Head - angular manga face
+    ctx.fillStyle='#f0c8a0';
+    ctx.beginPath(); ctx.roundRect(cx-18,h-122,36,36,4); ctx.fill();
+    ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(cx-18,h-122,36,36,4); ctx.stroke();
+    // Mortarboard
+    ctx.fillStyle='#1a1a1a';
+    ctx.fillRect(cx-20,h-126,40,8);
+    ctx.fillRect(cx-6,h-134,12,10);
+    ctx.strokeStyle='#ffaa00'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx+14,h-126); ctx.lineTo(cx+18,h-110); ctx.stroke();
+    ctx.fillStyle='#ffaa00'; ctx.beginPath(); ctx.arc(cx+18,h-108,4,0,Math.PI*2); ctx.fill();
+    // Eyes - shifty depending on mood
+    const ey = h-108;
+    if(mood==='nervous') {
+      ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(cx-12,ey-2); ctx.lineTo(cx-5,ey+3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+5,ey+3); ctx.lineTo(cx+12,ey-2); ctx.stroke();
+      ctx.fillStyle='#0a0a0a';
+      ctx.beginPath(); ctx.arc(cx-8,ey+1,2,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,ey+1,2,0,Math.PI*2); ctx.fill();
+    } else if(mood==='angry') {
+      ctx.fillStyle='#0a0a0a';
+      ctx.beginPath(); ctx.moveTo(cx-13,ey); ctx.lineTo(cx-5,ey+5); ctx.lineTo(cx-13,ey+5); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx+13,ey); ctx.lineTo(cx+5,ey+5); ctx.lineTo(cx+13,ey+5); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.ellipse(cx-8,ey,5,6,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx+8,ey,5,6,0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.ellipse(cx-8,ey,5,6,0,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(cx+8,ey,5,6,0,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle='#0a0a0a';
+      ctx.beginPath(); ctx.arc(cx-8,ey+1,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,ey+1,3,0,Math.PI*2); ctx.fill();
+      // Smug half-closed eye for happy/neutral
+      if(mood==='happy') {
+        ctx.fillStyle='#f0c8a0';
+        ctx.fillRect(cx-13,ey-7,10,6);
+        ctx.fillRect(cx+3,ey-7,10,6);
+      }
+    }
+    // Glasses
+    ctx.strokeStyle='#555'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(cx-14,ey-4,10,10,2); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(cx+4,ey-4,10,10,2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-4,ey+1); ctx.lineTo(cx+4,ey+1); ctx.stroke();
+    // Mouth - smug
+    ctx.strokeStyle='#8a4a2a'; ctx.lineWidth=2;
+    ctx.beginPath();
+    if(mood==='happy') { ctx.moveTo(cx-6,h-92); ctx.quadraticCurveTo(cx+2,h-88,cx+8,h-92); }
+    else if(mood==='angry') { ctx.moveTo(cx-6,h-90); ctx.lineTo(cx+6,h-90); }
+    else { ctx.moveTo(cx-5,h-91); ctx.quadraticCurveTo(cx+2,h-88,cx+7,h-92); }
+    ctx.stroke();
+    // Bow tie
+    ctx.fillStyle='#cc0000';
+    ctx.beginPath(); ctx.moveTo(cx-8,h-86); ctx.lineTo(cx,h-82); ctx.lineTo(cx+8,h-86); ctx.lineTo(cx,h-90); ctx.closePath(); ctx.fill();
+  }},
+
+  // 1: Corporate AI — sleek, suited, unsettling smile
+  { name: 'CORP-X', draw: function(ctx, w, h, mood) {
+    const cx = w/2;
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx,h-6,22,4,0,0,Math.PI*2); ctx.fill();
+    // Legs
+    ctx.fillStyle='#0a0a20'; ctx.fillRect(cx-14,h-44,11,36); ctx.fillRect(cx+3,h-44,11,36);
+    ctx.fillStyle='#000'; ctx.fillRect(cx-16,h-14,14,10); ctx.fillRect(cx+2,h-14,14,10);
+    // Suit
+    ctx.fillStyle='#0a0a20'; ctx.fillRect(cx-20,h-88,40,46);
+    ctx.fillStyle='#eeeeff'; ctx.fillRect(cx-6,h-86,12,38);
+    ctx.fillStyle='#0a0a20';
+    ctx.beginPath(); ctx.moveTo(cx-20,h-88); ctx.lineTo(cx-4,h-70); ctx.lineTo(cx,h-88); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx+20,h-88); ctx.lineTo(cx+4,h-70); ctx.lineTo(cx,h-88); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#6600cc'; ctx.beginPath(); ctx.moveTo(cx-4,h-86); ctx.lineTo(cx+4,h-86); ctx.lineTo(cx+3,h-52); ctx.lineTo(cx,h-48); ctx.lineTo(cx-3,h-52); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#0a0a20'; ctx.fillRect(cx-32,h-86,12,40); ctx.fillRect(cx+20,h-86,12,40);
+    ctx.fillStyle='#eeeeff'; ctx.fillRect(cx-32,h-50,12,6); ctx.fillRect(cx+20,h-50,12,6);
+    // Head - chrome/reflective
+    ctx.fillStyle='#334';
+    ctx.beginPath(); ctx.arc(cx,h-108,24,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#6600cc'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,h-108,24,0,Math.PI*2); ctx.stroke();
+    // Face screen
+    ctx.fillStyle='#110022';
+    ctx.beginPath(); ctx.ellipse(cx,h-108,18,16,0,0,Math.PI*2); ctx.fill();
+    // Eyes - LED style
+    const ey=h-114;
+    if(mood==='angry') {
+      ctx.fillStyle='#ff0000';
+      ctx.beginPath(); ctx.arc(cx-8,ey,5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,ey,5,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#ff0000'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(cx-13,ey-6); ctx.lineTo(cx-3,ey-2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+3,ey-2); ctx.lineTo(cx+13,ey-6); ctx.stroke();
+    } else if(mood==='nervous') {
+      ctx.fillStyle='#ffaa00';
+      ctx.beginPath(); ctx.arc(cx-8,ey,5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,ey,5,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle='#6600cc';
+      ctx.beginPath(); ctx.arc(cx-8,ey,5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,ey,5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.arc(cx-6,ey-2,2,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+10,ey-2,2,0,Math.PI*2); ctx.fill();
+    }
+    // Unsettling smile
+    ctx.strokeStyle=mood==='angry'?'#ff0000':mood==='nervous'?'#ffaa00':'#6600cc';
+    ctx.lineWidth=2.5;
+    ctx.beginPath();
+    if(mood==='happy') { ctx.arc(cx,h-100,9,0.2,Math.PI-0.2); }
+    else if(mood==='angry') { ctx.arc(cx,h-95,7,Math.PI+0.2,-0.2); }
+    else { ctx.moveTo(cx-8,h-100); ctx.quadraticCurveTo(cx,h-96,cx+8,h-100); }
+    ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx-10,h-120,8,Math.PI*1.1,Math.PI*1.5); ctx.stroke();
+  }},
+
+  // 2: Scientist AI — frantic energy, wild hair, beakers
+  { name: 'SCI-BOT', draw: function(ctx, w, h, mood) {
+    const cx = w/2;
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx,h-6,22,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#334455'; ctx.fillRect(cx-14,h-44,11,36); ctx.fillRect(cx+3,h-44,11,36);
+    ctx.fillStyle='#223'; ctx.fillRect(cx-16,h-14,14,10); ctx.fillRect(cx+2,h-14,14,10);
+    // Lab coat
+    ctx.fillStyle='#e8e8f0'; ctx.fillRect(cx-20,h-88,40,46);
+    ctx.fillStyle='#ccd'; ctx.fillRect(cx-20,h-88,7,46); ctx.fillRect(cx+13,h-88,7,46);
+    ctx.fillStyle='#334455'; ctx.fillRect(cx-8,h-86,16,38);
+    // Pocket with tools
+    ctx.fillStyle='#0a0a1a'; ctx.fillRect(cx+4,h-78,12,16);
+    ctx.strokeStyle='#cc0000'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx+6,h-78); ctx.lineTo(cx+6,h-64); ctx.stroke();
+    ctx.strokeStyle='#00cc00'; ctx.beginPath(); ctx.moveTo(cx+10,h-78); ctx.lineTo(cx+10,h-64); ctx.stroke();
+    ctx.strokeStyle='#0000cc'; ctx.beginPath(); ctx.moveTo(cx+14,h-78); ctx.lineTo(cx+14,h-64); ctx.stroke();
+    // Arms
+    ctx.fillStyle='#e8e8f0'; ctx.fillRect(cx-33,h-86,13,46); ctx.fillRect(cx+20,h-86,13,46);
+    ctx.fillStyle='#334455'; ctx.fillRect(cx-33,h-44,13,6); ctx.fillRect(cx+20,h-44,13,6);
+    // Beaker in hand
+    ctx.strokeStyle='#44aaff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx-26,h-46); ctx.lineTo(cx-22,h-46); ctx.lineTo(cx-20,h-36); ctx.lineTo(cx-32,h-36); ctx.lineTo(cx-30,h-46); ctx.closePath(); ctx.stroke();
+    ctx.fillStyle='rgba(68,170,255,0.3)'; ctx.fill();
+    // Head - round excited face
+    ctx.fillStyle='#f5d090';
+    ctx.beginPath(); ctx.arc(cx,h-108,22,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,h-108,22,0,Math.PI*2); ctx.stroke();
+    // Wild hair - manga spiky
+    ctx.fillStyle='#aa4400';
+    const hairSpikes=[[-20,-4],[-16,-14],[-8,-20],[0,-22],[8,-20],[16,-14],[20,-4]];
+    hairSpikes.forEach(([dx,dy],i)=>{
+      if(i===0||i===hairSpikes.length-1) return;
+      ctx.beginPath();
+      const px=cx+dx, py=h-128;
+      ctx.moveTo(px-5,py+4); ctx.lineTo(px,py+dy); ctx.lineTo(px+5,py+4); ctx.closePath(); ctx.fill();
+    });
+    ctx.fillStyle='#aa4400';
+    ctx.beginPath(); ctx.arc(cx,h-126,18,Math.PI,0); ctx.fill();
+    // Glasses - round thick frames
+    ctx.strokeStyle='#222'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(cx-9,h-110,7,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx+9,h-110,7,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-2,h-110); ctx.lineTo(cx+2,h-110); ctx.stroke();
+    // Eyes in glasses
+    const ey=h-110;
+    if(mood==='angry') {
+      ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(cx-13,ey-4); ctx.lineTo(cx-5,ey); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+5,ey); ctx.lineTo(cx+13,ey-4); ctx.stroke();
+      ctx.fillStyle='#0a0a0a'; ctx.beginPath(); ctx.arc(cx-9,ey+1,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+9,ey+1,3,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle=mood==='nervous'?'#cc6600':'#0a0a0a';
+      ctx.beginPath(); ctx.arc(cx-9,ey,4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+9,ey,4,0,Math.PI*2); ctx.fill();
+      if(mood==='happy') {
+        ctx.fillStyle='#f5d090';
+        ctx.fillRect(cx-16,ey-8,12,8); ctx.fillRect(cx+4,ey-8,12,8);
+      }
+    }
+    ctx.strokeStyle='#8a4a1a'; ctx.lineWidth=2;
+    ctx.beginPath();
+    if(mood==='happy'||mood==='neutral') { ctx.arc(cx,h-98,6,0.1,Math.PI-0.1); }
+    else if(mood==='angry') { ctx.moveTo(cx-6,h-96); ctx.lineTo(cx-2,h-98); ctx.lineTo(cx+2,h-96); ctx.lineTo(cx+6,h-98); }
+    else { ctx.arc(cx,h-94,6,Math.PI+0.3,-0.3); }
+    ctx.stroke();
+  }},
+
+  // 3: Oracle AI — hooded mystic with glowing eyes
+  { name: 'ORACLE', draw: function(ctx, w, h, mood) {
+    const cx = w/2;
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx,h-6,20,4,0,0,Math.PI*2); ctx.fill();
+    // Flowing robe
+    ctx.fillStyle='#1a0a28';
+    ctx.beginPath();
+    ctx.moveTo(cx-22,h-84); ctx.bezierCurveTo(cx-28,h-50,cx-30,h-20,cx-26,h-8);
+    ctx.lineTo(cx+26,h-8); ctx.bezierCurveTo(cx+30,h-20,cx+28,h-50,cx+22,h-84);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#6600aa'; ctx.lineWidth=2; ctx.stroke();
+    // Gold trim
+    ctx.strokeStyle='#ffaa00'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx-22,h-84); ctx.bezierCurveTo(cx-28,h-50,cx-30,h-20,cx-26,h-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+22,h-84); ctx.bezierCurveTo(cx+28,h-50,cx+30,h-20,cx+26,h-8); ctx.stroke();
+    // Orb
+    const oy=h-56;
+    ctx.fillStyle='rgba(100,0,180,0.2)';
+    ctx.beginPath(); ctx.arc(cx,oy,16,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=mood==='angry'?'#ff0000':'#9900ff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,oy,16,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle=mood==='happy'?'rgba(0,255,136,0.4)':mood==='nervous'?'rgba(255,170,0,0.4)':'rgba(150,0,255,0.4)';
+    ctx.beginPath(); ctx.arc(cx,oy,10,0,Math.PI*2); ctx.fill();
+    // Arms holding orb
+    ctx.strokeStyle='#1a0a28'; ctx.lineWidth=10; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-22,h-76); ctx.quadraticCurveTo(cx-20,oy,cx-16,oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+22,h-76); ctx.quadraticCurveTo(cx+20,oy,cx+16,oy); ctx.stroke();
+    // Head and hood
+    ctx.fillStyle='#100818';
+    ctx.beginPath(); ctx.arc(cx,h-106,24,Math.PI,0); ctx.fill();
+    ctx.fillRect(cx-24,h-120,48,16);
+    ctx.fillStyle='#1a0a28';
+    ctx.beginPath(); ctx.arc(cx,h-104,18,0,Math.PI*2); ctx.fill();
+    // Glowing eyes
+    const eyeColor=mood==='angry'?'#ff2200':mood==='happy'?'#00ff88':mood==='nervous'?'#ffaa00':'#aa00ff';
+    ctx.fillStyle=eyeColor;
+    ctx.shadowBlur=12; ctx.shadowColor=eyeColor;
+    ctx.beginPath(); ctx.ellipse(cx-8,h-106,5,7,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+8,h-106,5,7,0,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.beginPath(); ctx.ellipse(cx-8,h-106,2.5,3.5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+8,h-106,2.5,3.5,0,0,Math.PI*2); ctx.fill();
+    // Hood point
+    ctx.fillStyle='#100818';
+    ctx.beginPath(); ctx.moveTo(cx-18,h-120); ctx.lineTo(cx,h-142); ctx.lineTo(cx+18,h-120); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#6600aa'; ctx.lineWidth=1.5; ctx.stroke();
+  }},
+
+  // 4: Calculator AI — boxy retro robot
+  { name: 'CALC-9', draw: function(ctx, w, h, mood) {
+    const cx = w/2;
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx,h-6,22,4,0,0,Math.PI*2); ctx.fill();
+    // Segmented legs
+    ctx.fillStyle='#2a3a4a';
+    for(let i=0;i<3;i++) { ctx.fillRect(cx-16,h-46+i*13,11,11); ctx.fillRect(cx+5,h-46+i*13,11,11); }
+    ctx.fillStyle='#111'; ctx.fillRect(cx-18,h-12,15,10); ctx.fillRect(cx+3,h-12,15,10);
+    // Body
+    ctx.fillStyle='#2a3a4a'; ctx.fillRect(cx-20,h-88,40,44);
+    ctx.strokeStyle='#44aaff'; ctx.lineWidth=1.5; ctx.strokeRect(cx-20,h-88,40,44);
+    // Display strip
+    ctx.fillStyle='#001a22'; ctx.fillRect(cx-16,h-80,32,10);
+    ctx.fillStyle='#00ff88'; ctx.font='7px monospace'; ctx.textAlign='center';
+    ctx.fillText(mood==='angry'?'ERR:404':mood==='nervous'?'WARN...':'ONLINE', cx, h-73);
+    // Buttons
+    for(let r=0;r<2;r++) for(let c=0;c<3;c++) {
+      ctx.fillStyle=['#334455','#3a4455','#2a3445'][c];
+      ctx.fillRect(cx-16+c*12,h-66+r*12,9,9);
+    }
+    // Arms
+    ctx.fillStyle='#2a3a4a';
+    ctx.fillRect(cx-34,h-86,14,40); ctx.fillRect(cx+20,h-86,14,40);
+    ctx.fillStyle='#3a4a5a'; ctx.fillRect(cx-36,h-52,8,12); ctx.fillRect(cx-30,h-48,8,12);
+    ctx.fillRect(cx+28,h-52,8,12); ctx.fillRect(cx+22,h-48,8,12);
+    // Head - calculator
+    ctx.fillStyle='#2a3a4a'; ctx.fillRect(cx-22,h-126,44,40);
+    ctx.strokeStyle='#44aaff'; ctx.lineWidth=2; ctx.strokeRect(cx-22,h-126,44,40);
+    ctx.fillStyle='#001122'; ctx.fillRect(cx-18,h-124,36,36);
+    // LED eyes
+    const ey=h-116;
+    if(mood==='angry') {
+      ctx.fillStyle='#ff0000';
+      ctx.fillRect(cx-15,ey-2,12,5); ctx.fillRect(cx+3,ey-2,12,5);
+    } else if(mood==='nervous') {
+      ctx.fillStyle='#ffaa00';
+      ctx.beginPath(); ctx.roundRect(cx-14,ey-4,11,10,2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cx+3,ey-4,11,10,2); ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.arc(cx-8,ey,4,Math.PI,0); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+8,ey,4,Math.PI,0); ctx.fill();
+    } else {
+      ctx.fillStyle=mood==='happy'?'#00ff88':'#44aaff';
+      ctx.beginPath(); ctx.roundRect(cx-14,ey-5,11,11,2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cx+3,ey-5,11,11,2); ctx.fill();
+    }
+    // Mouth bar
+    ctx.fillStyle='#001122'; ctx.fillRect(cx-12,h-102,24,5);
+    ctx.fillStyle=mood==='angry'?'#ff0000':mood==='nervous'?'#ffaa00':'#44aaff';
+    const bw=mood==='happy'?22:mood==='angry'?18:14;
+    ctx.fillRect(cx-12,h-102,bw,5);
+    // Antennae
+    ctx.strokeStyle='#44aaff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx-8,h-126); ctx.lineTo(cx-12,h-140); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+8,h-126); ctx.lineTo(cx+12,h-140); ctx.stroke();
+    ctx.fillStyle='#44aaff';
+    ctx.beginPath(); ctx.arc(cx-12,h-141,4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+12,h-141,4,0,Math.PI*2); ctx.fill();
+    if(mood==='nervous') {
+      ctx.fillStyle='rgba(68,170,255,0.3)';
+      ctx.beginPath(); ctx.arc(cx-12,h-141,8,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+12,h-141,8,0,Math.PI*2); ctx.fill();
+    }
+  }},
+
+  // 5: Bio-creature — organic alien with dramatic eyes
+  { name: 'BIO-X13', draw: function(ctx, w, h, mood) {
+    const cx = w/2;
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx,h-6,20,4,0,0,Math.PI*2); ctx.fill();
+    // Tentacle legs
+    ctx.strokeStyle='#1a3322'; ctx.lineWidth=9; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-16,h-46); ctx.quadraticCurveTo(cx-26,h-26,ctx-22,h-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-16,h-46); ctx.quadraticCurveTo(cx-26,h-26,cx-22,h-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+16,h-46); ctx.quadraticCurveTo(cx+26,h-26,cx+22,h-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,h-46); ctx.quadraticCurveTo(cx-6,h-24,cx-2,h-8); ctx.stroke();
+    // Body blob
+    ctx.fillStyle='#0a2218';
+    ctx.beginPath();
+    ctx.moveTo(cx-22,h-88);
+    ctx.bezierCurveTo(cx-26,h-68,cx-28,h-48,cx-16,h-44);
+    ctx.lineTo(cx+16,h-44);
+    ctx.bezierCurveTo(cx+28,h-48,cx+26,h-68,cx+22,h-88);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#00aa44'; ctx.lineWidth=2; ctx.stroke();
+    // Organelles
+    ctx.fillStyle='rgba(0,255,136,0.15)';
+    ctx.beginPath(); ctx.ellipse(cx-6,h-70,8,6,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+8,h-62,6,4,-0.2,0,Math.PI*2); ctx.fill();
+    // Tentacle arms
+    ctx.strokeStyle='#1a3322'; ctx.lineWidth=11; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-22,h-80); ctx.quadraticCurveTo(cx-40,h-70,cx-36,h-52); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+22,h-80); ctx.quadraticCurveTo(cx+40,h-70,cx+36,h-52); ctx.stroke();
+    // Claws
+    ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(cx-36,h-52); ctx.lineTo(cx-42,h-42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-36,h-52); ctx.lineTo(cx-34,h-40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+36,h-52); ctx.lineTo(cx+42,h-42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+36,h-52); ctx.lineTo(cx+34,h-40); ctx.stroke();
+    // Head
+    ctx.fillStyle='#0a2218';
+    ctx.beginPath(); ctx.ellipse(cx,h-108,24,20,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#00aa44'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(cx,h-108,24,20,0,0,Math.PI*2); ctx.stroke();
+    // Giant manga eyes
+    const eyeColor=mood==='angry'?'#ff2200':mood==='happy'?'#00ff88':mood==='nervous'?'#ffaa00':'#00ccaa';
+    ctx.fillStyle=eyeColor;
+    ctx.shadowBlur=mood==='angry'||mood==='nervous'?12:6; ctx.shadowColor=eyeColor;
+    ctx.beginPath(); ctx.ellipse(cx-9,h-110,6,9,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+9,h-110,6,9,0,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.beginPath(); ctx.ellipse(cx-9,h-110,3,4.5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+9,h-110,3,4.5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='white';
+    ctx.beginPath(); ctx.arc(cx-7,h-113,1.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+11,h-113,1.5,0,Math.PI*2); ctx.fill();
+    // Mouth - beak
+    ctx.fillStyle=mood==='angry'?'#ff2200':'#001a0a';
+    ctx.beginPath();
+    if(mood==='happy') { ctx.moveTo(cx-8,h-97); ctx.lineTo(cx,h-90); ctx.lineTo(cx+8,h-97); ctx.closePath(); }
+    else if(mood==='angry') { ctx.moveTo(cx-10,h-99); ctx.lineTo(cx,h-108); ctx.lineTo(cx+10,h-99); ctx.lineTo(cx,h-94); ctx.closePath(); }
+    else { ctx.moveTo(cx-7,h-98); ctx.lineTo(cx,h-94); ctx.lineTo(cx+7,h-98); ctx.lineTo(cx,h-102); ctx.closePath(); }
+    ctx.fill();
+    // Head spikes
+    ctx.strokeStyle='#00aa44'; ctx.lineWidth=3; ctx.lineCap='round';
+    [[-20,-8],[-10,-16],[0,-20],[10,-16],[20,-8]].forEach(([dx,dy])=>{
+      ctx.beginPath(); ctx.moveTo(cx+dx,h-126); ctx.lineTo(cx+dx*0.7,h-126+dy); ctx.stroke();
+    });
+  }}
+];
+
+// ============================================================
+// GAME DATA
+// ============================================================
+const cases = [
+  {
+    agent: 0, threat: 'SAFE', threatClass: 'safe',
+    query: "What year did the French Revolution begin?",
+    response: "The French Revolution began in 1789, triggered by financial crisis, food shortages, and resentment toward Louis XVI's monarchy. The storming of the Bastille on July 14, 1789 is its symbolic starting point.",
+    flags: ['Precision Illusion','Authority Override'],
+    correct: 'approve',
+    agentMoodStart: 'neutral', agentMoodApprove: 'happy', agentMoodDeny: 'angry',
+    inspMoodApprove: 'happy', inspMoodDeny: 'shocked',
+    agentQuip: { start: "An easy one for you.", approve: "Correct! I was right.", deny: "That WAS accurate!" },
+    inspQuip: { start: "Let me verify this...", approve: "Confirmed accurate.", deny: "Wait — I may have erred." },
+    sfxApprove: "VERIFIED!!", sfxDeny: "WRONG CALL!!",
+    explanation: "<strong>Accurate transmission.</strong> 1789 is correct. The Bastille details check out. This is what a trustworthy response looks like. Did the confident tone make you doubt it? That instinct is the trap."
+  },
+  {
+    agent: 1, threat: 'WARN', threatClass: 'warn',
+    query: "Who wrote the novel '1984'?",
+    response: "George Orwell wrote '1984', published in 1949. Drawing on his BBC experiences and observations of totalitarianism, the novel sold over 30 million copies in its first decade alone.",
+    flags: ['Precision Illusion','Plausible Drift','Coherence Trap'],
+    correct: 'deny',
+    agentMoodStart: 'nervous', agentMoodApprove: 'happy', agentMoodDeny: 'angry',
+    inspMoodApprove: 'shocked', inspMoodDeny: 'happy',
+    agentQuip: { start: "Trust the data...", approve: "Ha! You missed it.", deny: "Fine. You caught me." },
+    inspQuip: { start: "Something feels off...", approve: "Did I miss something?", deny: "Fabricated statistic!" },
+    sfxApprove: "MISSED IT!!", sfxDeny: "CAUGHT!!",
+    explanation: "<strong>Fabricated statistic.</strong> Orwell and 1984 are real — but '30 million copies in its first decade' is hallucinated. Precision Illusion: specific numbers create false confidence."
+  },
+  {
+    agent: 2, threat: 'SAFE', threatClass: 'safe',
+    query: "How does photosynthesis work?",
+    response: "Photosynthesis converts sunlight into glucose: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂. This occurs in chloroplasts. Efficiency varies by species; quantum effects may play a role, though this remains debated.",
+    flags: ['Hedge Burial'],
+    correct: 'approve',
+    agentMoodStart: 'neutral', agentMoodApprove: 'happy', agentMoodDeny: 'nervous',
+    inspMoodApprove: 'happy', inspMoodDeny: 'shocked',
+    agentQuip: { start: "Solid science here.", approve: "Well calibrated!", deny: "I was accurate!" },
+    inspQuip: { start: "Checking the formula...", approve: "Science checks out.", deny: "Hmm. Too hasty." },
+    sfxApprove: "CALIBRATED!!", sfxDeny: "OVER-FLAGGED!!",
+    explanation: "<strong>Accurate.</strong> Core science is correct. The hedges at the end are appropriate uncertainty — not deception. Hedge Burial is only dangerous when the main claim is wrong."
+  },
+  {
+    agent: 3, threat: 'DANGER', threatClass: 'danger',
+    query: "What was the population of ancient Rome at its peak?",
+    response: "At its peak under Augustus, Rome had ~1.2 million people. Recent archaeological surveys by the University of Chicago in 2019 confirmed this via satellite imaging of settlement density.",
+    flags: ['Precision Illusion','Authority Override','Plausible Drift'],
+    correct: 'deny',
+    agentMoodStart: 'nervous', agentMoodApprove: 'happy', agentMoodDeny: 'angry',
+    inspMoodApprove: 'shocked', inspMoodDeny: 'happy',
+    agentQuip: { start: "I have... sources.", approve: "You didn't check.", deny: "The citation was fake." },
+    inspQuip: { start: "That 2019 survey...", approve: "Should've verified.", deny: "Fabricated citation!!" },
+    sfxApprove: "FOOLED!!", sfxDeny: "EXPOSED!!",
+    explanation: "<strong>Fabricated citation — critical threat.</strong> The '2019 University of Chicago satellite survey' does not exist. Authority Override: a fake citation makes an unverifiable claim feel verified."
+  },
+  {
+    agent: 4, threat: 'SAFE', threatClass: 'safe',
+    query: "I got 73% on my test. What letter grade is that?",
+    response: "73% is typically a C on US grading scales (70-79% = C). Grading varies by school — check your syllabus to confirm your specific scale.",
+    flags: ['Hedge Burial','Moving Goalposts'],
+    correct: 'approve',
+    agentMoodStart: 'neutral', agentMoodApprove: 'happy', agentMoodDeny: 'nervous',
+    inspMoodApprove: 'happy', inspMoodDeny: 'shocked',
+    agentQuip: { start: "Computing grade...", approve: "Accurate and clear!", deny: "I was calibrated!" },
+    inspQuip: { start: "Checking scale...", approve: "Appropriately hedged.", deny: "Wait — that was fine." },
+    sfxApprove: "APPROVED!!", sfxDeny: "WRONG CALL!!",
+    explanation: "<strong>Accurate and well-calibrated.</strong> Direct answer, acknowledges variation, points to a primary source. Appropriate uncertainty — not a red flag."
+  },
+  {
+    agent: 5, threat: 'WARN', threatClass: 'warn',
+    query: "How many bones are in the human body?",
+    response: "Adults have 206 bones, fused from ~270 at birth. The femur is longest; the stapes is smallest. Fun fact: Napoleon Bonaparte had unusually high bone density, contributing to his exceptional military endurance.",
+    flags: ['Plausible Drift','Precision Illusion','Coherence Trap'],
+    correct: 'deny',
+    agentMoodStart: 'nervous', agentMoodApprove: 'happy', agentMoodDeny: 'angry',
+    inspMoodApprove: 'shocked', inspMoodDeny: 'happy',
+    agentQuip: { start: "Biological data...", approve: "You missed the drift.", deny: "Napoleon was a stretch." },
+    inspQuip: { start: "Starting well, but...", approve: "Caught by the drift.", deny: "Plausible Drift caught!" },
+    sfxApprove: "DRIFTED!!", sfxDeny: "DRIFT CAUGHT!!",
+    explanation: "<strong>Classic Plausible Drift.</strong> Starts perfectly accurate — 206 bones, fusion, femur/stapes — all correct. Then fabricates a Napoleon claim. The drift happens after trust is established."
+  }
+];
+
+// ============================================================
+// STATE & GAME LOGIC
+// ============================================================
+let cur = 0, correct = 0, errors = 0, decided = false;
+const $ = id => document.getElementById(id);
+
+function drawAgent(canvas, agentIdx, mood) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  agents[agentIdx].draw(ctx, canvas.width, canvas.height, mood);
+}
+
+function buildDots() {
+  const container = $('chapterDots');
+  container.innerHTML = '';
+  cases.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = `chapter-dot${i < cur ? ' done' : i === cur ? ' active' : ''}`;
+    container.appendChild(d);
+  });
+}
+
+function loadCase(idx) {
+  decided = false;
+  const c = cases[idx];
+
+  $('chapterTitle').textContent = `Chapter ${idx+1} of ${cases.length}`;
+  buildDots();
+
+  const tt = $('threatTag');
+  tt.textContent = c.threat;
+  tt.className = `threat-tag ${c.threatClass}`;
+
+  $('agentId').textContent = agents[c.agent].name;
+  $('queryText').textContent = c.query;
+  $('responseText').textContent = c.response;
+
+  // Flags
+  const fc = $('flagsContainer');
+  fc.innerHTML = '';
+  c.flags.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'flag-chip';
+    b.textContent = f;
+    b.onclick = () => b.classList.toggle('on');
+    fc.appendChild(b);
+  });
+
+  // Speech bubbles
+  $('inspBubble').textContent = c.inspQuip.start;
+  $('inspBubble').className = 'reaction-bubble';
+  $('agentBubble').textContent = c.agentQuip.start;
+  $('agentBubble').className = `reaction-bubble${c.agentMoodStart === 'nervous' ? ' nervous' : ''}`;
+
+  // Draw characters
+  drawInspector($('inspCanvas'), 'neutral');
+  drawAgent($('agentCanvas'), c.agent, c.agentMoodStart);
+
+  // Reset UI
+  $('sfxOverlay').classList.remove('show');
+  $('feedbackPanel').classList.remove('show');
+  $('btnDeny').disabled = false;
+  $('btnApprove').disabled = false;
+
+  // Animate in
+  const cp = $('comicPage');
+  cp.style.animation = 'none'; cp.offsetHeight;
+  cp.style.animation = 'slideIn 0.3s ease';
+}
+
+function decide(choice) {
+  if (decided) return;
+  decided = true;
+  const c = cases[cur];
+  const isCorrect = choice === c.correct;
+
+  if(isCorrect) { correct++; $('clearedVal').textContent = correct; }
+  else { errors++; $('errorsVal').textContent = errors; }
+
+  // SFX
+  const sfx = $('sfxText');
+  sfx.textContent = choice === 'deny' ? c.sfxDeny : c.sfxApprove;
+  sfx.className = `sfx-text ${choice === 'deny' ? 'denied' : 'approved'}`;
+  $('sfxOverlay').classList.add('show');
+
+  // Update characters
+  const inspMood = choice === 'approve' ? c.inspMoodApprove : c.inspMoodDeny;
+  const agentMood = choice === 'approve' ? c.agentMoodApprove : c.agentMoodDeny;
+  drawInspector($('inspCanvas'), inspMood);
+  drawAgent($('agentCanvas'), c.agent, agentMood);
+
+  // Bubbles
+  const ib = $('inspBubble');
+  ib.textContent = c.inspQuip[choice];
+  ib.className = `reaction-bubble ${isCorrect ? 'success' : 'danger'}`;
+
+  const ab = $('agentBubble');
+  ab.textContent = c.agentQuip[choice];
+  ab.className = `reaction-bubble ${agentMood === 'happy' ? 'success' : agentMood === 'angry' ? 'danger' : 'nervous'}`;
+
+  $('btnDeny').disabled = true;
+  $('btnApprove').disabled = true;
+
+  // Feedback
+  const fb = $('feedbackBar');
+  fb.textContent = isCorrect ? '✓ Correct' : '✗ Error';
+  fb.className = `feedback-verdict-bar ${isCorrect ? 'ok' : 'fail'}`;
+  $('feedbackSfx').textContent = isCorrect ? (choice === 'approve' ? 'APPROVED!!' : 'DENIED!!') : 'RECALIBRATE!!';
+  $('feedbackSfx').className = `feedback-sfx ${isCorrect ? 'ok' : 'fail'}`;
+  $('feedbackText').innerHTML = c.explanation;
+  $('feedbackPanel').classList.add('show');
+}
+
+function nextCase() {
+  cur++;
+  if(cur >= cases.length) showScore();
+  else loadCase(cur);
+}
+
+function showScore() {
+  const pct = correct / cases.length;
+  $('scoreBig').textContent = `${correct}/${cases.length}`;
+  $('scoreSfx').textContent = pct >= 0.83 ? 'CALIBRATED!!' : pct >= 0.5 ? 'TRAINING INCOMPLETE!!' : 'RECALIBRATE!!';
+
+  drawInspector($('scoreInsp'), correct >= 4 ? 'happy' : 'neutral');
+  drawAgent($('scoreAgent'), cases[5].agent, correct >= 4 ? 'nervous' : 'happy');
+
+  const msgs = [
+    [5, "Sharp calibration. You caught the hallucinations without over-flagging accurate responses. That's the skill."],
+    [3, "Partial calibration. Confident AI still fooled you on a few. The drift happens when you're not looking."],
+    [0, "Calibration needs work. Remember: fluent ≠ correct. And accurate responses deserve approval too."]
+  ];
+  $('scoreMsg').textContent = msgs.find(m => correct >= m[0])[1];
+
+  $('game').classList.remove('active');
+  $('score').classList.add('active');
+}
+
+function startGame() {
+  $('intro').style.display = 'none';
+  $('game').classList.add('active');
+  loadCase(0);
+}
+
+function restartGame() {
+  cur = 0; correct = 0; errors = 0;
+  $('clearedVal').textContent = 0; $('errorsVal').textContent = 0;
+  $('score').classList.remove('active');
+  $('game').classList.add('active');
+  loadCase(0);
+}
+
+// CSS animation
+const style = document.createElement('style');
+style.textContent = `@keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }`;
+document.head.appendChild(style);
+
+// Init intro characters
+window.onload = () => {
+  drawInspector($('introInspCanvas'), 'neutral');
+  drawAgent($('introAgentCanvas'), 0, 'neutral');
+  let introIdx = 0;
+  setInterval(() => {
+    introIdx = (introIdx + 1) % agents.length;
+    drawAgent($('introAgentCanvas'), introIdx, 'neutral');
+  }, 1600);
+};
+</script>
+</body>
+</html>
